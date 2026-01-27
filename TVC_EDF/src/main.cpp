@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Adafruit_BNO08x.h>
-//#include <Servo.h>
 #include "RingBuf.h"
 #include "SdFat.h"
 
@@ -12,23 +11,11 @@ short loopCount = 0;
 // ====== End General ======
 
 //====== BNO085 ======
-#define BNO08X_CS 10
-#define BNO08X_INT 9
-#define BNO08X_RESET 6
+#define BNO08X_RESET -1
 Adafruit_BNO08x  bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
-sh2_SensorId_t orien_reportType = SH2_ROTATION_VECTOR;
-sh2_SensorId_t accel_reportType = SH2_LINEAR_ACCELERATION;
-long reportIntervalUs = 5000;
+long reportIntervalUs = 2000;
 //====== End BNO085 ======
-
-//======== Servos and ESC ========
-// Servo esc;
-// Servo leftAileron;
-// Servo rightAileron;
-// Servo stabilator;
-// Servo rudder;
-//======== End Servos and ESC ========
 
 //======= Data Logger ========
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
@@ -53,18 +40,7 @@ RingBuf<FsFile, RING_BUF_CAPACITY> rb;
 
 //============================================ Data Structs ============================================
 
-// Struct to store Duplex receiver data
-// struct DuplexData {
-//     int throttle;
-//     int leftAileron;
-//     int rightAileron;
-//     int stabilator;
-//     int rudder;
-//     int manualOverride;
-//     bool defaultValues;
-// };
-
-// Struct to store BNO085 IMU data
+// Struct to store BNO085 + perhaps some ISM330 IMU data
 struct IMUData {
     float accel_x;
     float accel_y;
@@ -73,10 +49,8 @@ struct IMUData {
     float i;
     float j;
     float k;
-    uint8_t cali_status;
-    bool valid_accel;
-    bool valid_orien;
-  };
+    short cali_status;
+};
 
 // Struct to consolidate all data
 struct AllData {
@@ -96,57 +70,37 @@ void readBNO085(IMUData &data);
 
 void setup() {
     Serial.begin(115200);
-    // Wire.begin();
-    // Wire.setClock(400000);  // Set I2C clock speed to 400kHz, remove if unreliability occurs
-    delay(100);
+    while (!Serial) delay(10); // will pause until serial console opens
 
     setupSD();
 
-    if (!bno08x.begin_SPI(BNO08X_CS, BNO08X_INT)) {
-        Serial.println("Failed to find BNO08x chip");
-        while (1) { delay(10); }
+    while (!bno08x.begin_I2C()) {
+      Serial.println("Failed to find BNO08x chip");
+      delay(500);
     }
-    setReports(orien_reportType, reportIntervalUs);
-    setReports(accel_reportType, reportIntervalUs);
-
-    // esc.attach(2);
-    // leftAileron.attach(33);
-    // rightAileron.attach(3);
-    // stabilator.attach(36);
-    // rudder.attach(37);
-    // esc.writeMicroseconds(1000); // Set ESC to minimum throttle
-    // leftAileron.writeMicroseconds(1500);
-    // rightAileron.writeMicroseconds(1500);
-    // stabilator.writeMicroseconds(1500);
-    // rudder.writeMicroseconds(1500);
-
     delay(3000);
 }
+int count = 0;
 
 void loop() {
     unsigned long startMillis = millis();
     //readReceiver(all_data.duplex);
-    readBNO085(all_data.imu);
-    //Serial.println("Accel (m/s^2): X=" + String(all_data.imu.accel_x, 4) + 
-                  //  " Y=" + String(all_data.imu.accel_y, 4) + 
-                  //  " Z=" + String(all_data.imu.accel_z, 4));
-    Serial.println(sensorValue.status);
-    // esc.writeMicroseconds(all_data.duplex.throttle);
-    // leftAileron.writeMicroseconds(all_data.duplex.leftAileron);
-    // rightAileron.writeMicroseconds(all_data.duplex.rightAileron);
-    // stabilator.writeMicroseconds(all_data.duplex.stabilator);
-    // rudder.writeMicroseconds(all_data.duplex.rudder);
-    logData(all_data); // Log data before transition
 
-    if (loopCount++ > 1000000){ // After 1 second, transition to next state
-        cleanupSD(); // Cleanup SD card
-        while(true) { // Wait indefinitely after landing
-            delay(1000);
-        }
+    while (count < 500) {
+        readBNO085(all_data.imu);
+        //logData(all_data);
+        //delay(2000);
     }
+    unsigned long endMillis = millis();
+    Serial.println("time taken: " + String(1000/((endMillis - startMillis)/500.0), 4));
+    count = 0;
+    //cleanupSD(); // Cleanup SD card
+    delay(1000);
+    //setupSD(); // Setup SD card again for next logging session
 }
 
 //============================================ Functions ============================================
+
 void logData(AllData &data) {
     // Amount of data in ringBuf.
     size_t n = rb.bytesUsed();
@@ -175,8 +129,6 @@ void logData(AllData &data) {
     rb.write(',');
     rb.print(data.imu.accel_z, 4);
     rb.write(',');
-    rb.print(data.imu.valid_accel);
-    rb.write(',');
     rb.print(data.imu.real, 5);
     rb.write(',');
     rb.print(data.imu.i, 5);
@@ -185,7 +137,7 @@ void logData(AllData &data) {
     rb.write(',');
     rb.print(data.imu.k, 5);
     rb.write(',');
-    rb.println(data.imu.valid_orien);
+    rb.println(data.imu.cali_status);
     if (rb.getWriteError()) {
         // Error caused by too few free bytes in RingBuf.
         Serial.println("WriteError");
@@ -242,43 +194,30 @@ void setupSD(){
 
 void readBNO085(IMUData &data) {
     if (bno08x.wasReset()) {
-        Serial.print("sensor was reset ");
-        setReports(orien_reportType, reportIntervalUs);
-        setReports(accel_reportType, reportIntervalUs);
+        Serial.println("Sensor was reset ");
+        setReports(SH2_ROTATION_VECTOR, 1000);
+        delay(300);
     }
     if (bno08x.getSensorEvent(&sensorValue)) {
+        data.cali_status = sensorValue.status;
         switch (sensorValue.sensorId) {
-            case SH2_LINEAR_ACCELERATION:
-                data.accel_x = sensorValue.un.linearAcceleration.x;
-                data.accel_y = sensorValue.un.linearAcceleration.y;
-                data.accel_z = sensorValue.un.linearAcceleration.z;
-                data.valid_accel = true;
-                break;
             case SH2_ROTATION_VECTOR:
                 data.real = sensorValue.un.rotationVector.real;
                 data.i = sensorValue.un.rotationVector.i;
                 data.j = sensorValue.un.rotationVector.j;
                 data.k = sensorValue.un.rotationVector.k;
-                data.valid_orien = true;
-                break;
-            default:
-                // Poor system, instead of bool, use a short or smth to specify: good data=1,bad=0,old=2, cause this is just old data
-                data.valid_accel = false;
-                data.valid_orien = false;
+                count++;
                 break;
         }
     } else {
-        data.valid_accel = false;
-        data.valid_orien = false;
-        Serial.println("Failed to read from BNO085.");
+        data.cali_status = -1; // for bad data or specifying that now the data is slightly old
     }
 }
 
 void setReports(sh2_SensorId_t reportType, long report_interval) {
     Serial.println("Setting desired reports");
     if (! bno08x.enableReport(reportType, report_interval)) {
-      Serial.println("Could not enable stabilized remote vector or acceleration report");
+      Serial.println("Could not enable rotation vector");
     }
 }
-
 //============================================ End Functions ============================================
