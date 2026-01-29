@@ -8,7 +8,7 @@
 //============================================ Configuration ============================================
 
 // ======== General ========
-const short CYCLE_TIME_MS = 10; // 100 Hz
+const short CYCLE_TIME_MS = 4; // 350 Hz
 short loopCount = 0;
 // ====== End General ======
 
@@ -101,20 +101,26 @@ int validOrien = 0;
 void loop() {
     unsigned long startMillis = millis();
     //readReceiver(all_data.duplex);
-    while (count < 100) {
-        delayMicroseconds(500);
-        //readISM330(all_data.imu);
+    while (count < 1000) {
+        //delayMicroseconds(160);
         readBNO085(all_data.imu);
-        //logData(all_data);
+        readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
+        logData(all_data);
+        // while ((millis() - startMillis) < (count * CYCLE_TIME_MS)) {
+        //     // wait until next cycle
+        //     delayMicroseconds(100);
+        // }
         //delay(2000);
     }
     unsigned long endMillis = millis();
-    Serial.println("time taken: " + String(1000/((endMillis - startMillis)/100.0), 4));
+    Serial.println("time taken: " + String(1000/((endMillis - startMillis)/1000.0), 4));
     Serial.println("Valid Accel: " + String(validAccel) + ". Valid Orien: " + String(validOrien));
-    //cleanupSD(); // Cleanup SD card
+    cleanupSD(); // Cleanup SD card
     count = 0;
     delay(3000);
-    //setupSD(); // Setup SD card again for next logging session
+    setupSD(); // Setup SD card again for next logging session
+    validAccel = 0;
+    validOrien = 0;
 }
 
 //============================================ Functions ============================================
@@ -130,7 +136,7 @@ void setupISM330() {
  	ism330.setDeviceConfig();
 	ism330.setBlockDataUpdate();   
 
-	ism330.setAccelDataRate(ISM_XL_ODR_1666Hz);
+	ism330.setAccelDataRate(ISM_XL_ODR_833Hz);
 	ism330.setAccelFullScale(ISM_4g);
 	ism330.setGyroDataRate(ISM_GY_ODR_OFF); // Not planning to use gyro data atm
 
