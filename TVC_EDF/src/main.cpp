@@ -26,11 +26,13 @@ sfe_ism_data_t accelData;
 //======= Data Logger ========
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
 
-// Size to log 10 byte lines at 25 kHz for more than ten minutes.
-const size_t LOG_FILE_SIZE = 10 * 25000 * 600;  // 150,000,000 bytes.
+const short log_line_length = 100; // Estimated number of bytes per line 
+    
+// Size for line length at cycle time for 10 minutes.
+const size_t LOG_FILE_SIZE = log_line_length * (1000/CYCLE_TIME_MS) * 10 * 60;
 
-// Space to hold around 2s of data for 80 byte lines at 100 sps.
-const size_t RING_BUF_CAPACITY  = 8000 * 2;
+// Space to hold around 2s of data.
+const size_t LOG_BUF_CAPACITY  = log_line_length * (1000/CYCLE_TIME_MS) * 2;
 
 // Max RingBuf used bytes. Useful to understand RingBuf overrun.
 size_t maxUsed = 0;
@@ -39,8 +41,22 @@ SdFs sd;
 FsFile file;
 
 // RingBuf for File type FsFile.
-RingBuf<FsFile, RING_BUF_CAPACITY> rb;
+RingBuf<FsFile, LOG_BUF_CAPACITY> log_rb;
 //===== End Data Logger ========
+
+//====== Telemetry =======
+#define TELE_SERIAL Serial1
+
+const short tele_line_length = 100; // Estimated number of bytes per line 
+
+// Space to hold around 2s of data.
+const size_t TELE_BUF_CAPACITY  = tele_line_length * (1000/CYCLE_TIME_MS) * 2;
+
+// RingBuf for radio hardware serial telemetry output
+RingBuf<HardwareSerial, TELE_BUF_CAPACITY> tele_rb;
+//====== End Telemetry =======
+
+
 
 //========================================== End Configuration ==========================================
 
@@ -62,7 +78,6 @@ struct IMUData {
 
 // Struct to consolidate all data
 struct AllData {
-    //DuplexData duplex;
     IMUData imu;
     short state = 0;
 } all_data; // Global variable to hold all data
@@ -72,16 +87,20 @@ struct AllData {
 void setupSD();
 void cleanupSD();
 void logData(AllData &data);
-//void readReceiver(DuplexData &data);
 void setReports(sh2_SensorId_t reportType, long report_interval);
 void readBNO085(IMUData &data);
 void setupISM330();
 void readISM330(IMUData &data);
+void sendData(AllData &data);
 
 void setup() {
 
     Serial.begin(115200);
     while (!Serial) delay(10); // will pause until serial console opens
+
+    Serial1.begin(115200);
+
+    tele_rb.begin(&TELE_SERIAL);
 
     setupSD();
 
@@ -89,7 +108,9 @@ void setup() {
       Serial.println("Failed to find BNO08x chip");
       delay(500);
     }
+
     Wire.setClock(400000);
+
     setupISM330();
 
     delay(3000);
@@ -100,7 +121,6 @@ int validAccel = 0;
 int validOrien = 0;
 void loop() {
     unsigned long startMillis = millis();
-    //readReceiver(all_data.duplex);
     while (count < 1000) {
         //delayMicroseconds(160);
         readBNO085(all_data.imu);
@@ -191,10 +211,20 @@ void setReports(sh2_SensorId_t reportType, long report_interval) {
     }
 }
 
+void sendData(AllData &data) {
+    tele_rb.write((uint8_t*)(&data), sizeof(AllData));
+    if (tele_rb.getWriteError()) {
+        // Error caused by too few free bytes in RingBuf. Producing faster than UART can drain. So it stops accepting and RB fills.
+        Serial.println("WriteError");
+        return;
+    }
+    // Moves RB data into UART TX FIFO
+    tele_rb.sync();
+}
 
 void logData(AllData &data) {
     // Amount of data in ringBuf.
-    size_t n = rb.bytesUsed();
+    size_t n = log_rb.bytesUsed();
     if ((n + file.curPosition()) > (LOG_FILE_SIZE - 20)) {
         Serial.println("File full - quitting.");
         return;
@@ -205,41 +235,41 @@ void logData(AllData &data) {
     if (n >= 512 && !file.isBusy()) {
         // Not busy only allows one sector before possible busy wait.
         // Write one sector from RingBuf to file.
-        if (512 != rb.writeOut(512)) {
+        if (512 != log_rb.writeOut(512)) {
         Serial.println("writeOut failed");
         return;
         }
     }
-    rb.print(millis());
-    rb.write(',');
-    rb.print(data.state);
-    rb.write(',');
-    rb.print(data.imu.accel_x, 4);
-    rb.write(',');
-    rb.print(data.imu.accel_y, 4);
-    rb.write(',');
-    rb.print(data.imu.accel_z, 4);
-    rb.write(',');
-    rb.print(data.imu.real, 5);
-    rb.write(',');
-    rb.print(data.imu.i, 5);
-    rb.write(',');
-    rb.print(data.imu.j, 5);
-    rb.write(',');
-    rb.print(data.imu.k, 5);
-    rb.write(',');
-    rb.print(data.imu.temp);
-    rb.write(',');
-    rb.print(data.imu.new_accel);
-    rb.write(',');
-    rb.println(data.imu.orien_cali_status);
-    if (rb.getWriteError()) {
+    log_rb.print(millis());
+    log_rb.write(',');
+    log_rb.print(data.state);
+    log_rb.write(',');
+    log_rb.print(data.imu.accel_x, 4);
+    log_rb.write(',');
+    log_rb.print(data.imu.accel_y, 4);
+    log_rb.write(',');
+    log_rb.print(data.imu.accel_z, 4);
+    log_rb.write(',');
+    log_rb.print(data.imu.real, 5);
+    log_rb.write(',');
+    log_rb.print(data.imu.i, 5);
+    log_rb.write(',');
+    log_rb.print(data.imu.j, 5);
+    log_rb.write(',');
+    log_rb.print(data.imu.k, 5);
+    log_rb.write(',');
+    log_rb.print(data.imu.temp);
+    log_rb.write(',');
+    log_rb.print(data.imu.new_accel);
+    log_rb.write(',');
+    log_rb.println(data.imu.orien_cali_status);
+    if (log_rb.getWriteError()) {
         // Error caused by too few free bytes in RingBuf.
         Serial.println("WriteError");
         return;
       }
-    // Write any RingBuf data to file.
-    rb.sync();
+    // Flush RB data into file object.
+    log_rb.sync(); // Can Rate limit this, but prob not very necessary
 }
 
 void cleanupSD(){
@@ -284,6 +314,6 @@ void setupSD(){
       return;
     }
     // initialize the RingBuf.
-    rb.begin(&file);
+    log_rb.begin(&file);
 }
 //============================================ End Functions ============================================
