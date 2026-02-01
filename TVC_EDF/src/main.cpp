@@ -64,9 +64,11 @@ RingBuf<HardwareSerial, TELE_BUF_CAPACITY> tele_rb;
 
 // Struct to store BNO085 + perhaps some ISM330 IMU data
 struct IMUData {
+    unsigned long accel_time;
     float accel_x;
     float accel_y;
     float accel_z;
+    unsigned long orien_time;
     float real;
     float i;
     float j;
@@ -78,6 +80,7 @@ struct IMUData {
 
 // Struct to consolidate all data
 struct AllData {
+    unsigned long overall_time;
     IMUData imu;
     short state = 0;
 } all_data; // Global variable to hold all data
@@ -117,15 +120,18 @@ void setup() {
 }
 
 int count = 0;
-int validAccel = 0;
-int validOrien = 0;
+
 void loop() {
     unsigned long startMillis = millis();
     while (count < 1000) {
         //delayMicroseconds(160);
         readBNO085(all_data.imu);
         readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
+        all_data.overall_time = millis();
+
+        
         logData(all_data);
+        //sendData(all_data);
         // while ((millis() - startMillis) < (count * CYCLE_TIME_MS)) {
         //     // wait until next cycle
         //     delayMicroseconds(100);
@@ -134,13 +140,10 @@ void loop() {
     }
     unsigned long endMillis = millis();
     Serial.println("time taken: " + String(1000/((endMillis - startMillis)/1000.0), 4));
-    Serial.println("Valid Accel: " + String(validAccel) + ". Valid Orien: " + String(validOrien));
     cleanupSD(); // Cleanup SD card
     count = 0;
     delay(3000);
     setupSD(); // Setup SD card again for next logging session
-    validAccel = 0;
-    validOrien = 0;
 }
 
 //============================================ Functions ============================================
@@ -173,8 +176,8 @@ void readISM330(IMUData &data) {
         data.accel_y = accelData.yData*0.00980665;
         data.accel_z = accelData.zData*0.00980665;
         data.temp = ism330.getTemp()/256.0 + 25; // Convert to °C
+        data.accel_time = millis();
         data.new_accel = true;
-        validAccel++;
         //count++;
     }else{
         data.new_accel = false; // Old data
@@ -195,7 +198,7 @@ void readBNO085(IMUData &data) {
                 data.i = sensorValue.un.rotationVector.i;
                 data.j = sensorValue.un.rotationVector.j;
                 data.k = sensorValue.un.rotationVector.k;
-                validOrien++;
+                data.orien_time = millis();
                 count++;
                 break;
         }
@@ -215,7 +218,7 @@ void sendData(AllData &data) {
     tele_rb.write((uint8_t*)(&data), sizeof(AllData));
     if (tele_rb.getWriteError()) {
         // Error caused by too few free bytes in RingBuf. Producing faster than UART can drain. So it stops accepting and RB fills.
-        Serial.println("WriteError");
+        Serial.println("Telemetry Ring Buffer Write Error");
         return;
     }
     // Moves RB data into UART TX FIFO
