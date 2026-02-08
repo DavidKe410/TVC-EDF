@@ -26,13 +26,13 @@ sfe_ism_data_t accelData;
 //======= Data Logger ========
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
 
-const short log_line_length = 100; // Estimated number of bytes per line 
+const short LOG_LINE_LENGTH = 100; // Estimated number of bytes per line 
     
 // Size for line length at cycle time for 10 minutes.
-const size_t LOG_FILE_SIZE = log_line_length * (1000/CYCLE_TIME_MS) * 10 * 60;
+const size_t LOG_FILE_SIZE = LOG_LINE_LENGTH * (1000/CYCLE_TIME_MS) * 10 * 60;
 
 // Space to hold around 2s of data.
-const size_t LOG_BUF_CAPACITY  = log_line_length * (1000/CYCLE_TIME_MS) * 2;
+const size_t LOG_BUF_CAPACITY  = LOG_LINE_LENGTH * (1000/CYCLE_TIME_MS) * 2;
 
 // Max RingBuf used bytes. Useful to understand RingBuf overrun.
 size_t maxUsed = 0;
@@ -47,10 +47,14 @@ RingBuf<FsFile, LOG_BUF_CAPACITY> log_rb;
 //====== Telemetry =======
 #define TELE_SERIAL Serial1
 
-const short tele_line_length = 100; // Estimated number of bytes per line 
+const short TELE_RATE = 10;
+
+unsigned long last_tele_MS = 0;
+
+const short TELE_LINE_LENGTH = 100; // Estimated number of bytes per line 
 
 // Space to hold around 2s of data.
-const size_t TELE_BUF_CAPACITY  = tele_line_length * (1000/CYCLE_TIME_MS) * 2;
+const size_t TELE_BUF_CAPACITY  = TELE_LINE_LENGTH * (1000/CYCLE_TIME_MS) * 2;
 
 // RingBuf for radio hardware serial telemetry output
 RingBuf<HardwareSerial, TELE_BUF_CAPACITY> tele_rb;
@@ -123,15 +127,21 @@ int count = 0;
 
 void loop() {
     unsigned long startMillis = millis();
-    while (count < 1000) {
+    while (count < 400) {
+        all_data.overall_time = millis();
         //delayMicroseconds(160);
         readBNO085(all_data.imu);
         readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
-        all_data.overall_time = millis();
-
         
         logData(all_data);
-        //sendData(all_data);
+
+        if (millis() - last_tele_MS > 5 * TELE_RATE) {
+            last_tele_MS = millis(); // reset if behind
+        }else if (millis() - last_tele_MS >= TELE_RATE) {
+            sendData(all_data);
+            last_tele_MS += TELE_RATE;
+
+        }
         // while ((millis() - startMillis) < (count * CYCLE_TIME_MS)) {
         //     // wait until next cycle
         //     delayMicroseconds(100);
@@ -139,7 +149,7 @@ void loop() {
         //delay(2000);
     }
     unsigned long endMillis = millis();
-    Serial.println("time taken: " + String(1000/((endMillis - startMillis)/1000.0), 4));
+    Serial.println("time taken: " + String(1000/((endMillis - startMillis)/400.0), 4));
     cleanupSD(); // Cleanup SD card
     count = 0;
     delay(3000);
@@ -222,7 +232,7 @@ void sendData(AllData &data) {
         return;
     }
     // Moves RB data into UART TX FIFO
-    tele_rb.sync();
+    tele_rb.sync(); //could if(tele_rb.bytesUsed() >= 64)
 }
 
 void logData(AllData &data) {
@@ -239,19 +249,23 @@ void logData(AllData &data) {
         // Not busy only allows one sector before possible busy wait.
         // Write one sector from RingBuf to file.
         if (512 != log_rb.writeOut(512)) {
-        Serial.println("writeOut failed");
-        return;
+            Serial.println("writeOut failed");
+            return;
         }
     }
-    log_rb.print(millis());
+    log_rb.print(data.overall_time);
     log_rb.write(',');
     log_rb.print(data.state);
+    log_rb.write(',');
+    log_rb.print(data.imu.accel_time);
     log_rb.write(',');
     log_rb.print(data.imu.accel_x, 4);
     log_rb.write(',');
     log_rb.print(data.imu.accel_y, 4);
     log_rb.write(',');
     log_rb.print(data.imu.accel_z, 4);
+    log_rb.write(',');
+    log_rb.print(data.imu.orien_time);
     log_rb.write(',');
     log_rb.print(data.imu.real, 5);
     log_rb.write(',');
@@ -271,11 +285,14 @@ void logData(AllData &data) {
         Serial.println("WriteError");
         return;
       }
-    // Flush RB data into file object.
-    log_rb.sync(); // Can Rate limit this, but prob not very necessary
+    // Flush RB data into file object. Force SD to potentially work more inefficiently but at least gets data over
+    if (n > (LOG_BUF_CAPACITY * 0.75)) {
+        log_rb.sync(); 
+    }
 }
 
 void cleanupSD(){
+    log_rb.sync();
     file.truncate();
     Serial.print("fileSize: ");
     Serial.println((uint32_t)file.fileSize());
