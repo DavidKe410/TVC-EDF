@@ -4,6 +4,7 @@
 #include "SparkFun_ISM330DHCX.h"
 #include "RingBuf.h"
 #include "SdFat.h"
+#include "SerialTransfer.h"
 
 //============================================ Configuration ============================================
 
@@ -26,7 +27,7 @@ sfe_ism_data_t accelData;
 //======= Data Logger ========
 #define SD_CONFIG SdioConfig(FIFO_SDIO)
 
-const short LOG_LINE_LENGTH = 100; // Estimated number of bytes per line 
+const short LOG_LINE_LENGTH = 50; // Estimated number of bytes per line 
     
 // Size for line length at cycle time for 10 minutes.
 const size_t LOG_FILE_SIZE = LOG_LINE_LENGTH * (1000/CYCLE_TIME_MS) * 10 * 60;
@@ -45,22 +46,17 @@ RingBuf<FsFile, LOG_BUF_CAPACITY> log_rb;
 //===== End Data Logger ========
 
 //====== Telemetry =======
-#define TELE_SERIAL Serial1
-
 const short TELE_RATE = 10;
 
 unsigned long last_tele_MS = 0;
 
-const short TELE_LINE_LENGTH = 100; // Estimated number of bytes per line 
+const short TELE_LINE_LENGTH = 50; // Estimated number of bytes per line 
 
 // Space to hold around 2s of data.
-const size_t TELE_BUF_CAPACITY  = TELE_LINE_LENGTH * (1000/CYCLE_TIME_MS) * 2;
+static uint8_t tx_buffer[TELE_LINE_LENGTH * (1000/TELE_RATE) * 2];
 
-// RingBuf for radio hardware serial telemetry output
-RingBuf<HardwareSerial, TELE_BUF_CAPACITY> tele_rb;
+SerialTransfer serialTransfer;
 //====== End Telemetry =======
-
-
 
 //========================================== End Configuration ==========================================
 
@@ -68,26 +64,45 @@ RingBuf<HardwareSerial, TELE_BUF_CAPACITY> tele_rb;
 
 // Struct to store BNO085 + perhaps some ISM330 IMU data
 struct IMUData {
-    unsigned long accel_time;
+    uint32_t accel_time;
     float accel_x;
     float accel_y;
     float accel_z;
-    unsigned long orien_time;
+    uint32_t orien_time;
     float real;
     float i;
     float j;
     float k;
-    short temp;
-    bool new_accel;
-    short orien_cali_status;
+    int8_t temp;
+    uint8_t new_accel;
+    int8_t orien_cali_status;
 };
 
 // Struct to consolidate all data
 struct AllData {
-    unsigned long overall_time;
+    uint32_t overall_time;
     IMUData imu;
-    short state = 0;
+    int8_t state = 0;
 } all_data; // Global variable to hold all data
+
+// Packed Data Struct
+struct __attribute__((packed)) PackedStruct {
+    uint32_t overall_time;
+    int8_t state;
+    uint32_t accel_time;
+    float accel_x;
+    float accel_y;
+    float accel_z;
+    uint32_t orien_time;
+    float real;
+    float i;
+    float j;
+    float k;
+    int8_t temp;
+    uint8_t new_accel;
+    int8_t orien_cali_status;
+} packed_data;
+
 //============================================= End Data Structs ============================================
 
 // Function Declarations (Prototypes)
@@ -98,6 +113,7 @@ void setReports(sh2_SensorId_t reportType, long report_interval);
 void readBNO085(IMUData &data);
 void setupISM330();
 void readISM330(IMUData &data);
+void packData(AllData &all_data, PackedStruct &packed_data);
 void sendData(AllData &data);
 
 void setup() {
@@ -105,9 +121,9 @@ void setup() {
     Serial.begin(115200);
     while (!Serial) delay(10); // will pause until serial console opens
 
-    Serial1.begin(115200);
-
-    tele_rb.begin(&TELE_SERIAL);
+    Serial1.begin(921600); // Should be able to increase as needed
+    Serial1.addMemoryForWrite(tx_buffer, sizeof(tx_buffer));
+    serialTransfer.begin(Serial1);
 
     setupSD();
 
@@ -132,15 +148,15 @@ void loop() {
         //delayMicroseconds(160);
         readBNO085(all_data.imu);
         readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
-        
+        packData(all_data, packed_data);
         logData(all_data);
-
-        if (millis() - last_tele_MS > 5 * TELE_RATE) {
-            last_tele_MS = millis(); // reset if behind
-        }else if (millis() - last_tele_MS >= TELE_RATE) {
+        if (all_data.overall_time - last_tele_MS >= TELE_RATE) {
             sendData(all_data);
-            last_tele_MS += TELE_RATE;
-
+            if (all_data.overall_time - last_tele_MS > 5 * TELE_RATE) {
+                last_tele_MS = all_data.overall_time; // reset if behind
+            }else{
+                last_tele_MS += TELE_RATE;
+            }
         }
         // while ((millis() - startMillis) < (count * CYCLE_TIME_MS)) {
         //     // wait until next cycle
@@ -224,15 +240,31 @@ void setReports(sh2_SensorId_t reportType, long report_interval) {
     }
 }
 
+void packData(AllData &data, PackedStruct &packed) {
+    // Brute force copy data into packed struct :/
+    packed.overall_time = data.overall_time;
+    packed.state = data.state;
+    packed.accel_time = data.imu.accel_time;
+    packed.accel_x = data.imu.accel_x;
+    packed.accel_y = data.imu.accel_y;
+    packed.accel_z = data.imu.accel_z;
+    packed.orien_time = data.imu.orien_time;
+    packed.real = data.imu.real;
+    packed.i = data.imu.i;
+    packed.j = data.imu.j;
+    packed.k = data.imu.k;
+    packed.temp = data.imu.temp;
+    packed.new_accel = data.imu.new_accel;
+    packed.orien_cali_status = data.imu.orien_cali_status;
+}
+
 void sendData(AllData &data) {
-    tele_rb.write((uint8_t*)(&data), sizeof(AllData));
-    if (tele_rb.getWriteError()) {
-        // Error caused by too few free bytes in RingBuf. Producing faster than UART can drain. So it stops accepting and RB fills.
-        Serial.println("Telemetry Ring Buffer Write Error");
-        return;
+    // Only send if there is enough room for the packet (100 bytes + overhead)
+    if ((size_t)Serial1.availableForWrite() >= (sizeof(packed_data) + 20)) {
+        serialTransfer.sendDatum(packed_data);
+    } else {
+        Serial.println("Dropped a packet for ESP32 telemetry");
     }
-    // Moves RB data into UART TX FIFO
-    tele_rb.sync(); //could if(tele_rb.bytesUsed() >= 64)
 }
 
 void logData(AllData &data) {
@@ -242,9 +274,8 @@ void logData(AllData &data) {
         Serial.println("File full - quitting.");
         return;
     }
-    if (n > maxUsed) {
-        maxUsed = n;
-    }
+    if (n > maxUsed) {maxUsed = n;}
+
     if (n >= 512 && !file.isBusy()) {
         // Not busy only allows one sector before possible busy wait.
         // Write one sector from RingBuf to file.
@@ -253,33 +284,9 @@ void logData(AllData &data) {
             return;
         }
     }
-    log_rb.print(data.overall_time);
-    log_rb.write(',');
-    log_rb.print(data.state);
-    log_rb.write(',');
-    log_rb.print(data.imu.accel_time);
-    log_rb.write(',');
-    log_rb.print(data.imu.accel_x, 4);
-    log_rb.write(',');
-    log_rb.print(data.imu.accel_y, 4);
-    log_rb.write(',');
-    log_rb.print(data.imu.accel_z, 4);
-    log_rb.write(',');
-    log_rb.print(data.imu.orien_time);
-    log_rb.write(',');
-    log_rb.print(data.imu.real, 5);
-    log_rb.write(',');
-    log_rb.print(data.imu.i, 5);
-    log_rb.write(',');
-    log_rb.print(data.imu.j, 5);
-    log_rb.write(',');
-    log_rb.print(data.imu.k, 5);
-    log_rb.write(',');
-    log_rb.print(data.imu.temp);
-    log_rb.write(',');
-    log_rb.print(data.imu.new_accel);
-    log_rb.write(',');
-    log_rb.println(data.imu.orien_cali_status);
+
+    log_rb.write((uint8_t*)&packed_data, sizeof(packed_data));
+
     if (log_rb.getWriteError()) {
         // Error caused by too few free bytes in RingBuf.
         Serial.println("WriteError");
@@ -310,7 +317,7 @@ void setupSD(){
     int fileIteration = 0;
     boolean fileCreated = false;
     while(!fileCreated && fileIteration < 1000){
-        String tempName = "FLIGHT" + String(fileIteration) + ".csv";
+        String tempName = "FLIGHT" + String(fileIteration) + ".bin";
         int str_len = tempName.length() + 1;
         char LOG_FILENAME[str_len];
         tempName.toCharArray(LOG_FILENAME, str_len);
