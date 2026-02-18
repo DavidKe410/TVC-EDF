@@ -3,9 +3,9 @@
 // Struct to consolidate all data
 AllData all_data; 
 // Packed Data Struct
-PackedStruct packed_data;
+PackedDataStruct packed_data;
 
-void packData(AllData &data, PackedStruct &packed) {
+void packData(AllData &data, PackedDataStruct &packed) {
     // Brute force copy data into packed struct :/
     packed.overall_time = data.overall_time;
     packed.state = data.state;
@@ -23,11 +23,11 @@ void packData(AllData &data, PackedStruct &packed) {
     packed.orien_cali_status = data.imu.orien_cali_status;
 }
 
-void sendData(PackedStruct &packed_data) {
+void sendData(PackedDataStruct &packed_data) {
     // Rate limit telemetry to TELE_RATE
     if (all_data.overall_time - last_tele_MS >= TELE_RATE) {
         // Only send if there is enough room for the packet (100 bytes + overhead)
-        if ((size_t)Serial1.availableForWrite() >= (sizeof(packed_data) + 20)) {
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + 20)) {
             serialTransfer.sendDatum(packed_data);
         } else {
             Serial.println("Dropped a packet for ESP32 telemetry");
@@ -43,7 +43,7 @@ void sendData(PackedStruct &packed_data) {
 
 }
 
-void logData(PackedStruct &packed_data) {
+void logData(PackedDataStruct &packed_data) {
     // Amount of data in ringBuf.
     size_t n = log_rb.bytesUsed();
     if ((n + file.curPosition()) > (LOG_FILE_SIZE - 20)) {

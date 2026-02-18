@@ -29,7 +29,7 @@ extern FsFile file;
 extern RingBuf<FsFile, LOG_BUF_CAPACITY> log_rb;
 //===== End Data Logger ========
 
-//====== Telemetry =======
+//====== Telemetry/Commands =======
 extern uint32_t last_tele_MS;
 
 constexpr uint8_t TELE_RATE = 10;
@@ -41,4 +41,8 @@ constexpr size_t TX_BUF_CAPACITY = TELE_LINE_LENGTH * (1000 / TELE_RATE) * 2;
 extern uint8_t tx_buffer[TX_BUF_CAPACITY];
 
 extern SerialTransfer serialTransfer;
-//====== End Telemetry =======
+
+#define CHANNEL 0
+
+
+//====== End Telemetry/Commands =======
