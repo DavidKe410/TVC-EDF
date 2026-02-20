@@ -11,14 +11,16 @@ SparkFun_ISM330DHCX ism330;
 sfe_ism_data_t accelData;
 // ======= End ISM330DLC =======
 
-void setupBNO085() {
+void setupBNO085(statusStruct &system_status) {
     while (!bno08x.begin_I2C()) { // This starts a wire that the ISM can use...AND overwrites the setClock speed to soemthing slower????wtf is wrong with this sensor
       Serial.println("Failed to find BNO08x chip");
       delay(500);
     }
+    Serial.println("BNO08x I2C setup complete.");
+    system_status.bno_state = 1;
 }
 
-void setupISM330() {
+void setupISM330(statusStruct &system_status) {
 	while (!ism330.begin()){
 		Serial.println("ISM did not begin. Please check the wiring...");
 		delay(500);
@@ -38,6 +40,7 @@ void setupISM330() {
 	ism330.setAccelFilterLP2();
 	ism330.setAccelSlopeFilter(ISM_LP_ODR_DIV_400);
     Serial.println("ISM330DHCX setup complete.");
+    system_status.ism_state = 1;
 }
 
 void readISM330(IMUData &data) {

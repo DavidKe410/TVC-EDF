@@ -13,9 +13,11 @@ RingBuf<FsFile, LOG_BUF_CAPACITY> log_rb;
 //===== End Data Logger ========
 
 //====== Telemetry =======
-uint32_t last_tele_MS = 0;
+uint32_t last_tele_ms = 0;
 
 uint8_t tx_buffer[TX_BUF_CAPACITY];
 
 SerialTransfer serialTransfer;
 //====== End Telemetry =======
+
+uint32_t last_status_ms = 0;

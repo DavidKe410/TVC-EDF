@@ -51,3 +51,13 @@ struct __attribute__((packed)) CommandStruct {
     uint16_t servo4;
     uint16_t motor;
 };
+
+struct __attribute__((packed)) statusStruct {
+    uint32_t overall_time;
+    int8_t ac_state;
+    int8_t bno_state;
+    int8_t ism_state;
+    int8_t sd_state;
+    int8_t esp_ac_state;
+    int8_t esp_gcs_state;
+};

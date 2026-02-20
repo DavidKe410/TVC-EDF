@@ -16,17 +16,18 @@ void setup() {
     //while (!Serial) delay(10); // will pause until serial console opens
     delay(500);
 
+    //Serial7.addMemoryForRead(2048); // just for more head room
     Serial7.addMemoryForWrite(tx_buffer, sizeof(tx_buffer));
     Serial7.begin(921600); // Should be able to increase as needed
-    serialTransfer.begin(Serial7);
+    serialTransfer.begin(Serial7, false, Serial, 50); //default 50, may decrease if rx commands at higher rate
 
-    //setupSD();
+    //setupSD(system_status);
 
-    setupBNO085(); // This starts a wire that the ISM can use...AND overwrites the setClock speed to soemthing slower????wtf is wrong with this sensor
+    setupBNO085(system_status); // This starts a wire that the ISM can use...AND overwrites the setClock speed to soemthing slower????wtf is wrong with this sensor
 
     Wire.setClock(400000);
 
-    setupISM330();
+    setupISM330(system_status);
 
     delay(3000);
 }
@@ -40,7 +41,8 @@ void loop() {
         readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
         packData(all_data, packed_data);
         //logData(packed_data);
-        sendData(packed_data); // alr rate limited
+        sendData(packed_data, system_status); // alr rate limited
+        receiveData();
 
         // while ((millis() - startMillis) < (loopCount * CYCLE_TIME_MS)) {
         //     // wait until next cycle

@@ -1,7 +1,14 @@
 #pragma once
-#include "SerialTransfer.h"
-#include "SdFat.h"
-#include "RingBuf.h"
+
+// #ifdef ARDUINO_ARCH_ESP32
+//   // This code only exists for ESP32, ESP32-S2, ESP32-C3, etc.
+// #endif
+#ifdef CORE_TEENSY
+    // This code only exists for Teensy boards
+    #include "SerialTransfer.h"
+    #include "SdFat.h"
+    #include "RingBuf.h"
+#endif
 
 //======= General ========
 constexpr uint8_t CYCLE_TIME_MS = 4; // 350 Hz
@@ -30,7 +37,7 @@ extern RingBuf<FsFile, LOG_BUF_CAPACITY> log_rb;
 //===== End Data Logger ========
 
 //====== Telemetry/Commands =======
-extern uint32_t last_tele_MS;
+extern uint32_t last_tele_ms;
 
 constexpr uint8_t TELE_RATE = 10;
 
@@ -44,5 +51,7 @@ extern SerialTransfer serialTransfer;
 
 #define CHANNEL 0
 
+constexpr uint8_t STATUS_RATE = 50;
 
+extern uint32_t last_status_ms;
 //====== End Telemetry/Commands =======

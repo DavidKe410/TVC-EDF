@@ -8,21 +8,23 @@ uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
 
 PackedDataStruct rx_packed_data;
 CommandStruct tx_command_data;
+statusStruct system_status;
 
 esp_now_peer_info_t peerInfo;
 
 #define CHANNEL 0
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
+    //Serial.print("\r\nLast Packet Send Status:\t");
+    //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
 }
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    memcpy(&rx_packed_data, incomingData, sizeof(rx_packed_data));
-    Serial.print("Bytes received: ");
-    Serial.println(len);
+    memcpy(&rx_packed_data, incomingData, sizeof(rx_packed_data)); // len == sizeof(rx_packeted_data)
+    //Serial.print("Bytes received: ");
+    //Serial.println(len);
+    Serial.println(rx_packed_data.accel_z);
 }
 
 void setup() {
@@ -54,6 +56,8 @@ void setup() {
 
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);
+    Serial.println("GCS ESP32 setup complete");
+    system_status.esp_gcs_state = 1;
 }
  
 void loop() {
@@ -75,7 +79,5 @@ void loop() {
     else {
         Serial.println("Error sending the data");
     }
-
-    Serial.println(rx_packed_data.overall_time);
     delay(500);
 }

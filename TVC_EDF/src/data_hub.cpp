@@ -4,6 +4,26 @@
 AllData all_data; 
 // Packed Data Struct
 PackedDataStruct packed_data;
+// Command Struct from GCS
+CommandStruct rx_command;
+// Status Struct for both ac and gcs
+statusStruct system_status = {millis(), -1, -1, -1, -1, -1, -1};
+
+
+void receiveData(){
+    if (serialTransfer.available()){
+        uint8_t packetID = serialTransfer.currentPacketID();
+        switch (packetID){
+            case 0:
+                serialTransfer.rxObj(rx_command);
+                // If we have multiple packet types, we can use the packetID to determine how to parse the data
+                break;
+            case 1:
+                serialTransfer.rxObj(system_status);
+                break;
+        }
+    }
+}
 
 void packData(AllData &data, PackedDataStruct &packed) {
     // Brute force copy data into packed struct :/
@@ -23,21 +43,39 @@ void packData(AllData &data, PackedDataStruct &packed) {
     packed.orien_cali_status = data.imu.orien_cali_status;
 }
 
-void sendData(PackedDataStruct &packed_data) {
+void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
+    if (system_status.esp_ac_state == -1){ return; }
+
     // Rate limit telemetry to TELE_RATE
-    if (all_data.overall_time - last_tele_MS >= TELE_RATE) {
+    if (packed_data.overall_time - last_tele_ms >= TELE_RATE) {
         // Only send if there is enough room for the packet (100 bytes + overhead)
         if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + 20)) {
-            serialTransfer.sendDatum(packed_data);
+            serialTransfer.txObj(packed_data);
+            serialTransfer.sendData(sizeof(packed_data), 0);
         } else {
-            Serial.println("Dropped a packet for ESP32 telemetry");
+            Serial.println("Dropped a telemetry packet to ESP32");
         }
 
         // Prevent drift timers by resetting if we're too far behind, otherwise just increment by the rate.
-        if (all_data.overall_time - last_tele_MS > 5 * TELE_RATE) {
-            last_tele_MS = all_data.overall_time; // reset if behind
+        if (packed_data.overall_time - last_tele_ms > 5 * TELE_RATE) {
+            last_tele_ms = packed_data.overall_time; // reset if behind
         }else{
-            last_tele_MS += TELE_RATE;
+            last_tele_ms += TELE_RATE;
+        }
+    }
+
+    if (system_status.overall_time - last_status_ms >= STATUS_RATE) {
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status) + 20)) {
+            serialTransfer.txObj(system_status);
+            serialTransfer.sendData(sizeof(system_status), 1);
+        } else {
+            Serial.println("Dropped a system status packet");
+        }
+
+        if (system_status.overall_time - last_status_ms > 5 * STATUS_RATE) {
+            last_status_ms = system_status.overall_time; // reset if behind
+        }else{
+            last_status_ms += STATUS_RATE;
         }
     }
 
@@ -84,7 +122,7 @@ void cleanupSD(){
     file.close();
 }
 
-void setupSD(){
+void setupSD(statusStruct &system_status){
     // Initialize the SD.
     if (!sd.begin(SD_CONFIG)) {
       sd.initErrorHalt(&Serial);
@@ -118,4 +156,7 @@ void setupSD(){
     }
     // initialize the RingBuf.
     log_rb.begin(&file);
+
+    Serial.println("SD setup complete");
+    system_status.sd_state = 1;
 }
