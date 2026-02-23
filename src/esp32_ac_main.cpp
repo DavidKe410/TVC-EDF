@@ -80,7 +80,7 @@ void loop() {
                     serialTransfer.rxObj(rx_packed_data);
                     result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
                     break;
-                case 1:
+                case 2:
                     serialTransfer.rxObj(system_status);
                     result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
                     break;
@@ -91,16 +91,17 @@ void loop() {
             count++;
             Serial.println(count);
         }
-        if (system_status.overall_time - last_status_ms >= STATUS_RATE) {
+        uint32_t current_time = millis();
+        if (current_time - last_status_ms >= STATUS_RATE) {
             if ((size_t)HWSerial1.availableForWrite() >= (sizeof(system_status) + 20)) {
                 serialTransfer.txObj(system_status);
-                serialTransfer.sendData(sizeof(system_status), 1);
+                serialTransfer.sendData(sizeof(system_status), 2);
             } else {
                 Serial.println("Dropped a system status packet");
             }
 
-            if (system_status.overall_time - last_status_ms > 5 * STATUS_RATE) {
-                last_status_ms = system_status.overall_time; // reset if behind
+            if (current_time - last_status_ms > 5 * STATUS_RATE) {
+                last_status_ms = current_time; // reset if behind
             }else{
                 last_status_ms += STATUS_RATE;
             }

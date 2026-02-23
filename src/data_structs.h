@@ -26,6 +26,7 @@ struct AllData {
 
 // Packed Data Struct
 struct __attribute__((packed)) PackedDataStruct {
+    uint8_t packet_type = 0;
     uint32_t overall_time;
     int8_t state;
     uint32_t accel_time;
@@ -43,6 +44,7 @@ struct __attribute__((packed)) PackedDataStruct {
 };
 
 struct __attribute__((packed)) CommandStruct {
+    uint8_t packet_type = 1;
     uint32_t overall_time;
     int8_t state;
     uint16_t servo1;
@@ -53,6 +55,7 @@ struct __attribute__((packed)) CommandStruct {
 };
 
 struct __attribute__((packed)) statusStruct {
+    uint8_t packet_type = 2;
     uint32_t overall_time;
     int8_t ac_state;
     int8_t bno_state;

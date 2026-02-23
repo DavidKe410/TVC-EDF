@@ -5,11 +5,6 @@
 #include "data_hub.h"
 #include "sensors.h"
 
-//============================================ Configuration ============================================
-//========================================== End Configuration ==========================================
-
-// Function Declarations (Prototypes)
-
 void setup() {
 
     Serial.begin(115200);
@@ -41,7 +36,7 @@ void loop() {
         readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
         packData(all_data, packed_data);
         //logData(packed_data);
-        sendData(packed_data, system_status); // alr rate limited
+        sendData(packed_data, system_status); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
         receiveData();
 
         // while ((millis() - startMillis) < (loopCount * CYCLE_TIME_MS)) {

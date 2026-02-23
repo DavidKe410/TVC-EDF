@@ -7,7 +7,7 @@ PackedDataStruct packed_data;
 // Command Struct from GCS
 CommandStruct rx_command;
 // Status Struct for both ac and gcs
-statusStruct system_status = {millis(), -1, -1, -1, -1, -1, -1};
+statusStruct system_status = {2, millis(), -1, -1, -1, -1, -1, -1};
 
 
 void receiveData(){
@@ -47,7 +47,7 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
     if (system_status.esp_ac_state == -1){ return; }
 
     // Rate limit telemetry to TELE_RATE
-    if (packed_data.overall_time - last_tele_ms >= TELE_RATE) {
+    if (packed_data.overall_time - last_tele_ms >= TELE_RATE) { // Using packed_data.overall_time as millis()
         // Only send if there is enough room for the packet (100 bytes + overhead)
         if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + 20)) {
             serialTransfer.txObj(packed_data);
@@ -64,16 +64,16 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
         }
     }
 
-    if (system_status.overall_time - last_status_ms >= STATUS_RATE) {
+    if (packed_data.overall_time - last_status_ms >= STATUS_RATE) {
         if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status) + 20)) {
             serialTransfer.txObj(system_status);
-            serialTransfer.sendData(sizeof(system_status), 1);
+            serialTransfer.sendData(sizeof(system_status), 2); // status packet id = 2
         } else {
             Serial.println("Dropped a system status packet");
         }
 
-        if (system_status.overall_time - last_status_ms > 5 * STATUS_RATE) {
-            last_status_ms = system_status.overall_time; // reset if behind
+        if (packed_data.overall_time - last_status_ms > 5 * STATUS_RATE) {
+            last_status_ms = packed_data.overall_time; // reset if behind
         }else{
             last_status_ms += STATUS_RATE;
         }

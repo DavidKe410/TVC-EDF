@@ -12,6 +12,10 @@ CommandStruct tx_command_data;
 statusStruct system_status;
 
 esp_now_peer_info_t peerInfo;
+esp_err_t result = ESP_OK;
+
+uint32_t last_cmd_ms = millis();
+uint8_t COMMAND_RATE = 10;
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -21,11 +25,21 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    //can compare length to see what type of data struct
-    memcpy(&rx_packed_data, incomingData, sizeof(rx_packed_data)); // len == sizeof(rx_packeted_data)
-    //Serial.print("Bytes received: ");
-    //Serial.println(len);
-    Serial.println(rx_packed_data.accel_z);
+    uint8_t packetID = incomingData[0]; // first byte is packet type
+    if (packetID == 0 && len == sizeof(PackedDataStruct)) {
+        memcpy(&rx_packed_data, incomingData, len);
+    } 
+    else if (packetID == 1 && len == sizeof(CommandStruct)) {
+        memcpy(&tx_command_data, incomingData, len);
+    }else if (packetID == 2 && len == sizeof(statusStruct)) {
+        memcpy(&system_status, incomingData, len);
+    } else {
+        Serial.print("Received packet with unknown format. Packet ID: ");
+        Serial.print(packetID);
+        Serial.print(", Length: ");
+        Serial.println(len);
+        return;
+    }
 }
 
 void setup() {
@@ -60,25 +74,36 @@ void setup() {
     Serial.println("GCS ESP32 setup complete");
     system_status.esp_gcs_state = 1;
 }
- 
+
 void loop() {
     // Set values to send
-    tx_command_data.overall_time = millis();
-    tx_command_data.state = 1;
-    tx_command_data.servo1 = random(1000,2000);
-    tx_command_data.servo2 = random(1000,2000);
-    tx_command_data.servo3 = random(1000,2000);
-    tx_command_data.servo4 = random(1000,2000);
-    tx_command_data.motor = random(1000,2000);
+    tx_command_data = {1, millis(), 1, random(1000,2000), random(1000,2000), random(1000,2000), random(1000,2000)};
+    uint32_t current_time = millis();
+    if (current_time - last_cmd_ms >= COMMAND_RATE) {
+        if (result == ESP_OK) {
+            result = esp_now_send(broadcastAddress, (uint8_t *) &tx_command_data, sizeof(tx_command_data));
+        } else {
+            Serial.println("ESP32 GCS not ready for ESP_NOW Command Send");
+        }
 
-    // Send message via ESP-NOW
-    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &tx_command_data, sizeof(tx_command_data));
+        if (current_time - last_cmd_ms > 5 * COMMAND_RATE) {
+            last_cmd_ms = current_time; // reset if behind
+        }else{
+            last_cmd_ms += COMMAND_RATE;
+        }
+    }
 
-    if (result == ESP_OK) {
-        Serial.println("Sent with success");
+    if (current_time - last_status_ms >= STATUS_RATE) {
+        if (result == ESP_OK) {
+            result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
+        } else {
+            Serial.println("ESP32 GCS not ready for ESP_NOW Status Send");
+        }
+
+        if (current_time - last_status_ms > 5 * STATUS_RATE) {
+            last_status_ms = current_time; // reset if behind
+        }else{
+            last_status_ms += STATUS_RATE;
+        }
     }
-    else {
-        Serial.println("Error sending the data");
-    }
-    delay(500);
 }
