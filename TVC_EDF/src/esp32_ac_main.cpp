@@ -2,12 +2,10 @@
 #include "WiFi.h"
 #include <esp_now.h>
 #include <HardwareSerial.h>
-#include "SerialTransfer.h"
 #include "data_structs.h"
 #include "config.h"
 
 HardwareSerial HWSerial1(0);
-SerialTransfer serialTransfer;
 PackedDataStruct rx_packed_data;
 CommandStruct tx_command_data;
 statusStruct system_status;
@@ -24,7 +22,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    memcpy(&tx_command_data, incomingData, len));
+    memcpy(&tx_command_data, incomingData, len);
     Serial.print("Bytes received from GCS: ");
     Serial.println(len);
 }
@@ -76,14 +74,15 @@ void loop() {
     while (count < 400) {
         if (serialTransfer.available()) {
             uint8_t packetID = serialTransfer.currentPacketID();
+            esp_err_t result;
             switch (packetID){
                 case 0:
                     serialTransfer.rxObj(rx_packed_data);
-                    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
+                    result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
                     break;
                 case 1:
                     serialTransfer.rxObj(system_status);
-                    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
+                    result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
                     break;
             }
 
@@ -93,7 +92,7 @@ void loop() {
             Serial.println(count);
         }
         if (system_status.overall_time - last_status_ms >= STATUS_RATE) {
-            if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status) + 20)) {
+            if ((size_t)HWSerial1.availableForWrite() >= (sizeof(system_status) + 20)) {
                 serialTransfer.txObj(system_status);
                 serialTransfer.sendData(sizeof(system_status), 1);
             } else {

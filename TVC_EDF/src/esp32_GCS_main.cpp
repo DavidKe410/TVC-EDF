@@ -2,6 +2,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include "data_structs.h"
+#include "config.h"
 
 // Receiver (onboard ESP) MAC Address
 uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
@@ -12,7 +13,6 @@ statusStruct system_status;
 
 esp_now_peer_info_t peerInfo;
 
-#define CHANNEL 0
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     //Serial.print("\r\nLast Packet Send Status:\t");
@@ -21,6 +21,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    //can compare length to see what type of data struct
     memcpy(&rx_packed_data, incomingData, sizeof(rx_packed_data)); // len == sizeof(rx_packeted_data)
     //Serial.print("Bytes received: ");
     //Serial.println(len);
