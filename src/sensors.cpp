@@ -17,7 +17,7 @@ void setupBNO085(statusStruct &system_status) {
       delay(500);
     }
     Serial.println("BNO08x I2C setup complete.");
-    system_status.bno_state = 1;
+    system_status.teensy_status.bno_state = 1;
 }
 
 void setupISM330(statusStruct &system_status) {
@@ -40,7 +40,7 @@ void setupISM330(statusStruct &system_status) {
 	ism330.setAccelFilterLP2();
 	ism330.setAccelSlopeFilter(ISM_LP_ODR_DIV_400);
     Serial.println("ISM330DHCX setup complete.");
-    system_status.ism_state = 1;
+    system_status.teensy_status.ism_state = 1;
 }
 
 void readISM330(IMUData &data) {

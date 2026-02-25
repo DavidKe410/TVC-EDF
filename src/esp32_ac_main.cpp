@@ -9,6 +9,7 @@ HardwareSerial HWSerial1(0);
 PackedDataStruct rx_packed_data;
 CommandStruct tx_command_data;
 statusStruct system_status;
+statusStruct temp_status;
 
 esp_now_peer_info_t peerInfo;
 
@@ -22,9 +23,19 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    memcpy(&tx_command_data, incomingData, len);
-    Serial.print("Bytes received from GCS: ");
-    Serial.println(len);
+    uint8_t packetID = incomingData[0]; // first byte is packet type
+    if (packetID == 1 && len == sizeof(CommandStruct)) {
+        memcpy(&tx_command_data, incomingData, len);
+    }else if (packetID == 2 && len == sizeof(statusStruct)) {
+        memcpy(&temp_status, incomingData, len);
+        system_status.esp_gcs_status = temp_status.esp_gcs_status;
+    } else {
+        Serial.print("Received packet with unknown format. Packet ID: ");
+        Serial.print(packetID);
+        Serial.print(", Length: ");
+        Serial.println(len);
+        return;
+    }
 }
 
 
@@ -64,7 +75,7 @@ void setup() {
 
     delay(500);
     Serial.println("ESP setup complete");
-    system_status.esp_ac_state = 1;
+    system_status.esp_ac_status.esp_ac_state = 1;
 }
 
 int count = 0;
@@ -81,7 +92,8 @@ void loop() {
                     result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
                     break;
                 case 2:
-                    serialTransfer.rxObj(system_status);
+                    serialTransfer.rxObj(temp_status);
+                    system_status.teensy_status = temp_status.teensy_status;
                     result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
                     break;
             }

@@ -10,6 +10,7 @@ uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
 PackedDataStruct rx_packed_data;
 CommandStruct tx_command_data;
 statusStruct system_status;
+statusStruct temp_status;
 
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
@@ -72,7 +73,7 @@ void setup() {
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);
     Serial.println("GCS ESP32 setup complete");
-    system_status.esp_gcs_state = 1;
+    system_status.esp_gcs_status.esp_gcs_state = 1;
 }
 
 void loop() {

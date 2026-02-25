@@ -54,13 +54,26 @@ struct __attribute__((packed)) CommandStruct {
     uint16_t motor;
 };
 
+struct __attribute__((packed)) teensyStatus {
+    uint32_t overall_time = millis();
+    int8_t ac_state = -1;
+    int8_t bno_state = -1;
+    int8_t ism_state = -1;
+    int8_t sd_state = -1;
+};
+
+struct __attribute__((packed)) espACStatus { //for future proofing atp but currently just holds the state of the AC
+    int8_t esp_ac_state = -1;
+};
+
+struct __attribute__((packed)) espGCSStatus {
+    int8_t esp_gcs_state = -1;
+};
+
+
 struct __attribute__((packed)) statusStruct {
     uint8_t packet_type = 2;
-    uint32_t overall_time;
-    int8_t ac_state;
-    int8_t bno_state;
-    int8_t ism_state;
-    int8_t sd_state;
-    int8_t esp_ac_state;
-    int8_t esp_gcs_state;
+    teensyStatus teensy_status;
+    espACStatus esp_ac_status;
+    espGCSStatus esp_gcs_status;
 };

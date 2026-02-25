@@ -7,10 +7,11 @@ PackedDataStruct packed_data;
 // Command Struct from GCS
 CommandStruct rx_command;
 // Status Struct for both ac and gcs
-statusStruct system_status = {2, millis(), -1, -1, -1, -1, -1, -1};
+statusStruct system_status;
+statusStruct temp_status;
 
 
-void receiveData(){
+void receiveData(){ //This is for the onboard teensy
     if (serialTransfer.available()){
         uint8_t packetID = serialTransfer.currentPacketID();
         switch (packetID){
@@ -19,7 +20,9 @@ void receiveData(){
                 // If we have multiple packet types, we can use the packetID to determine how to parse the data
                 break;
             case 1:
-                serialTransfer.rxObj(system_status);
+                serialTransfer.rxObj(temp_status);
+                system_status.esp_ac_status = temp_status.esp_ac_status;
+                system_status.esp_gcs_status = temp_status.esp_gcs_status;
                 break;
         }
     }
@@ -44,7 +47,7 @@ void packData(AllData &data, PackedDataStruct &packed) {
 }
 
 void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
-    if (system_status.esp_ac_state == -1){ return; }
+    if (system_status.esp_ac_status.esp_ac_state == -1){ return; }
 
     // Rate limit telemetry to TELE_RATE
     if (packed_data.overall_time - last_tele_ms >= TELE_RATE) { // Using packed_data.overall_time as millis()
@@ -158,5 +161,5 @@ void setupSD(statusStruct &system_status){
     log_rb.begin(&file);
 
     Serial.println("SD setup complete");
-    system_status.sd_state = 1;
+    system_status.teensy_status.sd_state = 1;
 }
