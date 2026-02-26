@@ -76,7 +76,6 @@ void setup() {
 
 void loop() {
     // Set values to send
-    tx_command_data = {1, millis(), 1, random(1000,2000), random(1000,2000), random(1000,2000), random(1000,2000)};
     uint32_t current_time = millis();
     if (current_time - last_cmd_ms >= COMMAND_RATE) {
         if (result == ESP_OK) {

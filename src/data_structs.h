@@ -45,13 +45,13 @@ struct __attribute__((packed)) PackedDataStruct {
 
 struct __attribute__((packed)) CommandStruct {
     uint8_t packet_type = 1;
-    uint32_t overall_time;
-    int8_t state;
-    uint16_t servo1;
-    uint16_t servo2;
-    uint16_t servo3;
-    uint16_t servo4;
-    uint16_t motor;
+    uint32_t overall_time = millis();
+    int8_t state = 1;
+    uint16_t servo1 = random(1000,2000);
+    uint16_t servo2 = random(1000,2000);
+    uint16_t servo3 = random(1000,2000);
+    uint16_t servo4 = random(1000,2000);
+    uint16_t motor = random(1000,2000);
 };
 
 struct __attribute__((packed)) teensyStatus {
@@ -80,5 +80,5 @@ struct __attribute__((packed)) statusStruct {
     espGCSStatus esp_gcs_status;
 };
 
-uint16_t AC_GCS_status_size = sizeof(system_status.esp_ac_status) + sizeof(system_status.esp_gcs_status); // yeah we are defining/initializing this here, but i just use this everywhere, and i dont wanna make a dedicated cpp file
-uint16_t teensy_AC_status_size = sizeof(system_status.teensy_status) + sizeof(system_status.esp_ac_status);
+constexpr uint16_t AC_GCS_status_size = sizeof(espACStatus) + sizeof(espGCSStatus); // yeah we are defining/initializing this here, but i just use this everywhere, and i dont wanna make a dedicated cpp file
+constexpr uint16_t teensy_AC_status_size = sizeof(teensyStatus) + sizeof(espACStatus);
