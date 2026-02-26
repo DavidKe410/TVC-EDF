@@ -8,21 +8,18 @@ PackedDataStruct packed_data;
 CommandStruct rx_command;
 // Status Struct for both ac and gcs
 statusStruct system_status;
-statusStruct temp_status;
-
 
 void receiveData(){ //This is for the onboard teensy
     if (serialTransfer.available()){
         uint8_t packetID = serialTransfer.currentPacketID();
         switch (packetID){
-            case 0:
+            case 1:
                 serialTransfer.rxObj(rx_command);
                 // If we have multiple packet types, we can use the packetID to determine how to parse the data
                 break;
-            case 1:
-                serialTransfer.rxObj(temp_status);
-                system_status.esp_ac_status = temp_status.esp_ac_status;
-                system_status.esp_gcs_status = temp_status.esp_gcs_status;
+            case 2:
+                serialTransfer.rxObj(system_status.esp_ac_status);
+                serialTransfer.rxObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // If rxObj removes it from the buffer, could this sizeof just be 0
                 break;
         }
     }
@@ -68,9 +65,9 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
     }
 
     if (packed_data.overall_time - last_status_ms >= STATUS_RATE) {
-        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status) + 20)) {
-            serialTransfer.txObj(system_status);
-            serialTransfer.sendData(sizeof(system_status), 2); // status packet id = 2
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + 20)) {
+            serialTransfer.txObj(system_status.teensy_status);
+            serialTransfer.sendData(sizeof(system_status.teensy_status), 2); // status packet id = 2
         } else {
             Serial.println("Dropped a system status packet");
         }

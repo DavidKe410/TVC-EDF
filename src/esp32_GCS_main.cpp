@@ -10,7 +10,6 @@ uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
 PackedDataStruct rx_packed_data;
 CommandStruct tx_command_data;
 statusStruct system_status;
-statusStruct temp_status;
 
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
@@ -29,11 +28,10 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
     if (packetID == 0 && len == sizeof(PackedDataStruct)) {
         memcpy(&rx_packed_data, incomingData, len);
-    } 
-    else if (packetID == 1 && len == sizeof(CommandStruct)) {
+    } else if (packetID == 1 && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
         memcpy(&tx_command_data, incomingData, len);
-    }else if (packetID == 2 && len == sizeof(statusStruct)) {
-        memcpy(&system_status, incomingData, len);
+    } else if (packetID == 2 && len == teensy_AC_status_size) {
+        memcpy(&system_status.teensy_status, incomingData, len);
     } else {
         Serial.print("Received packet with unknown format. Packet ID: ");
         Serial.print(packetID);
@@ -89,21 +87,21 @@ void loop() {
 
         if (current_time - last_cmd_ms > 5 * COMMAND_RATE) {
             last_cmd_ms = current_time; // reset if behind
-        }else{
+        } else {
             last_cmd_ms += COMMAND_RATE;
         }
     }
 
     if (current_time - last_status_ms >= STATUS_RATE) {
         if (result == ESP_OK) {
-            result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
+            result = esp_now_send(broadcastAddress, (uint8_t *) &system_status.esp_gcs_status, sizeof(system_status.esp_gcs_status));
         } else {
             Serial.println("ESP32 GCS not ready for ESP_NOW Status Send");
         }
 
         if (current_time - last_status_ms > 5 * STATUS_RATE) {
             last_status_ms = current_time; // reset if behind
-        }else{
+        } else {
             last_status_ms += STATUS_RATE;
         }
     }

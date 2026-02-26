@@ -55,6 +55,7 @@ struct __attribute__((packed)) CommandStruct {
 };
 
 struct __attribute__((packed)) teensyStatus {
+    uint8_t packet_type = 2;
     uint32_t overall_time = millis();
     int8_t ac_state = -1;
     int8_t bno_state = -1;
@@ -63,17 +64,21 @@ struct __attribute__((packed)) teensyStatus {
 };
 
 struct __attribute__((packed)) espACStatus { //for future proofing atp but currently just holds the state of the AC
+    uint8_t packet_type = 2;
     int8_t esp_ac_state = -1;
 };
 
 struct __attribute__((packed)) espGCSStatus {
+    uint8_t packet_type = 2;
     int8_t esp_gcs_state = -1;
 };
 
 
 struct __attribute__((packed)) statusStruct {
-    uint8_t packet_type = 2;
     teensyStatus teensy_status;
     espACStatus esp_ac_status;
     espGCSStatus esp_gcs_status;
 };
+
+uint16_t AC_GCS_status_size = sizeof(system_status.esp_ac_status) + sizeof(system_status.esp_gcs_status); // yeah we are defining/initializing this here, but i just use this everywhere, and i dont wanna make a dedicated cpp file
+uint16_t teensy_AC_status_size = sizeof(system_status.teensy_status) + sizeof(system_status.esp_ac_status);

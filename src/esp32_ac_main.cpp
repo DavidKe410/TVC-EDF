@@ -9,7 +9,6 @@ HardwareSerial HWSerial1(0);
 PackedDataStruct rx_packed_data;
 CommandStruct tx_command_data;
 statusStruct system_status;
-statusStruct temp_status;
 
 esp_now_peer_info_t peerInfo;
 
@@ -21,14 +20,13 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     //IDK if we do anything on a send :/, have the 
 }
 
-// Callback when data is received
+// Callback when data is received, this is specifically from GCS as its ESP-NOW
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
-    if (packetID == 1 && len == sizeof(CommandStruct)) {
+    if (packetID == 1 && len == sizeof(tx_command_data)) {
         memcpy(&tx_command_data, incomingData, len);
-    }else if (packetID == 2 && len == sizeof(statusStruct)) {
-        memcpy(&temp_status, incomingData, len);
-        system_status.esp_gcs_status = temp_status.esp_gcs_status;
+    }else if (packetID == 2 && len == sizeof(system_status.esp_gcs_status)) {
+        memcpy(&system_status.esp_gcs_status, incomingData, len);
     } else {
         Serial.print("Received packet with unknown format. Packet ID: ");
         Serial.print(packetID);
@@ -92,9 +90,8 @@ void loop() {
                     result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
                     break;
                 case 2:
-                    serialTransfer.rxObj(temp_status);
-                    system_status.teensy_status = temp_status.teensy_status;
-                    result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, sizeof(system_status));
+                    serialTransfer.rxObj(system_status.teensy_status);
+                    result = esp_now_send(broadcastAddress, (uint8_t *) &system_status, teensy_AC_status_size); // Just need to send Teensy and AC since GCS has its own truth
                     break;
             }
 
@@ -104,10 +101,11 @@ void loop() {
             Serial.println(count);
         }
         uint32_t current_time = millis();
-        if (current_time - last_status_ms >= STATUS_RATE) {
-            if ((size_t)HWSerial1.availableForWrite() >= (sizeof(system_status) + 20)) {
-                serialTransfer.txObj(system_status);
-                serialTransfer.sendData(sizeof(system_status), 2);
+        if (current_time - last_status_ms >= STATUS_RATE) { // Sending GCS and AC status over to Teensy through HWSerial + SerialTransfer
+            if ((size_t)HWSerial1.availableForWrite() >= (AC_GCS_status_size + 20)) {
+                serialTransfer.txObj(system_status.esp_ac_status);
+                serialTransfer.txObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg
+                serialTransfer.sendData(AC_GCS_status_size, 2);
             } else {
                 Serial.println("Dropped a system status packet");
             }
