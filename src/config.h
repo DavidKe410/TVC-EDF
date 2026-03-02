@@ -7,15 +7,24 @@ extern uint16_t loopCount;
 
 extern SerialTransfer serialTransfer;
 
-#define CHANNEL 0
-
-constexpr uint8_t STATUS_RATE = 50;
+constexpr uint16_t STATUS_RATE = 1000; // idk why we need this to be constexpr
 
 extern uint32_t last_status_ms;
 
-// #ifdef ARDUINO_ARCH_ESP32
-//     // This code only exists for ESP32, ESP32-S2, ESP32-C3, etc.
-// #endif
+extern uint32_t last_cmd_ms;
+
+constexpr uint8_t COMMAND_RATE = 100;
+
+constexpr uint32_t serialT_Baud = 2000000;
+
+constexpr uint32_t serialT_timeout = 5; // ms
+
+#ifdef ESP32
+    #include <esp_wifi_types.h>
+    #define CHANNEL 0
+    const wifi_phy_rate_t ESPNOW_RATE = WIFI_PHY_RATE_6M;
+#endif
+
 #ifdef CORE_TEENSY
     // This code only exists for Teensy boards
 
@@ -46,7 +55,7 @@ extern uint32_t last_status_ms;
     //====== Telemetry/Commands =======
     extern uint32_t last_tele_ms;
 
-    constexpr uint8_t TELE_RATE = 10;
+    constexpr uint16_t TELE_RATE = 10;
 
     constexpr uint8_t TELE_LINE_LENGTH = 50; // Estimated number of bytes per line
 

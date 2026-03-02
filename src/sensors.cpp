@@ -27,7 +27,7 @@ void setupISM330(statusStruct &system_status) {
 	}
     ism330.deviceReset();
 	// Wait for it to finish reseting
-	while (!ism330.getDeviceReset()){delay(1);}
+	while (!ism330.getDeviceReset()){delay(10);}
     delay(100);
  	ism330.setDeviceConfig();
 	ism330.setBlockDataUpdate();   

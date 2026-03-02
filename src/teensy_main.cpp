@@ -13,8 +13,8 @@ void setup() {
 
     //Serial7.addMemoryForRead(2048); // just for more head room
     Serial7.addMemoryForWrite(tx_buffer, sizeof(tx_buffer));
-    Serial7.begin(921600); // Should be able to increase as needed
-    serialTransfer.begin(Serial7, false, Serial, 50); //default 50, may decrease if rx commands at higher rate
+    Serial7.begin(serialT_Baud); // Should be able to increase as needed
+    serialTransfer.begin(Serial7, true, Serial, serialT_timeout); //default 50, may decrease if rx commands at higher rate
 
     //setupSD(system_status);
 
@@ -24,7 +24,9 @@ void setup() {
 
     setupISM330(system_status);
 
-    delay(3000);
+    delay(500);
+    system_status.teensy_status.ac_state = 1;
+    serialTransfer.reset(); // just to clear out any garbage data that might be in the buffer from before setup
 }
 
 void loop() {
@@ -38,7 +40,7 @@ void loop() {
         //logData(packed_data);
         sendData(packed_data, system_status); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
         receiveData();
-
+        system_status.teensy_status.ac_state = 2;
         // while ((millis() - startMillis) < (loopCount * CYCLE_TIME_MS)) {
         //     // wait until next cycle
         //     delayMicroseconds(100);

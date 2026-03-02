@@ -22,3 +22,5 @@ SerialTransfer serialTransfer;
 //====== End Telemetry =======
 
 uint32_t last_status_ms = 0;
+
+uint32_t last_cmd_ms = 0;

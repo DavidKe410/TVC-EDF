@@ -66,6 +66,7 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
 
     if (packed_data.overall_time - last_status_ms >= STATUS_RATE) {
         if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + 20)) {
+            system_status.teensy_status.overall_time = packed_data.overall_time; 
             serialTransfer.txObj(system_status.teensy_status);
             serialTransfer.sendData(sizeof(system_status.teensy_status), 2); // status packet id = 2
         } else {
@@ -77,6 +78,15 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
         }else{
             last_status_ms += STATUS_RATE;
         }
+        Serial.println(F("--- Teensy Status ---"));
+        Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
+        Serial.print(F("AC State:    ")); Serial.println(system_status.teensy_status.ac_state);
+        Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
+        Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
+        Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
+        Serial.println(F("---------------------"));
+        Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
+        Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
     }
 
 }

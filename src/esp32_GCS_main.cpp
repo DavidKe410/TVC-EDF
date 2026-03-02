@@ -14,20 +14,33 @@ statusStruct system_status;
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
 
-uint32_t last_cmd_ms = millis();
-uint8_t COMMAND_RATE = 10;
-
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     //Serial.print("\r\nLast Packet Send Status:\t");
+    result = ESP_OK; // clearing buffer by 1 i geuss, so potentially be able to send again
     //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
 }
+
+int countweirdrate = 0;
+int count = 0;
+uint32_t previous_time = millis();
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
     if (packetID == 0 && len == sizeof(PackedDataStruct)) {
         memcpy(&rx_packed_data, incomingData, len);
+        count++;
+        if (count == 400) {
+            uint32_t current_time = millis();
+            float rate = 1000/((current_time - previous_time)/400.0);
+            if (rate < 95 || rate > 105) {
+                countweirdrate++;
+            }
+            Serial.println("Received 400 packets, average rate: " + String(rate, 4) + " packets/s");
+            previous_time = current_time;
+            count = 0;
+        }
     } else if (packetID == 1 && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
         memcpy(&tx_command_data, incomingData, len);
     } else if (packetID == 2 && len == teensy_AC_status_size) {
@@ -36,7 +49,9 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
         Serial.print("Received packet with unknown format. Packet ID: ");
         Serial.print(packetID);
         Serial.print(", Length: ");
-        Serial.println(len);
+        Serial.print(len);
+        Serial.print(", incomingdata sizse: ");
+        Serial.println(sizeof(incomingData));
         return;
     }
 }
@@ -52,7 +67,7 @@ void setup() {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
-
+    esp_wifi_config_espnow_rate(WIFI_IF_STA, ESPNOW_RATE); // lower to increase range in the future
     // Once ESPNow is successfully Init, we will register for Send CB to
     // get the status of Transmitted packet
     esp_now_register_send_cb(OnDataSent);
@@ -90,7 +105,7 @@ void loop() {
             last_cmd_ms += COMMAND_RATE;
         }
     }
-
+    //Serial.println("current_time: " + String(current_time) + ", last_status_ms: " + String(last_status_ms));
     if (current_time - last_status_ms >= STATUS_RATE) {
         if (result == ESP_OK) {
             result = esp_now_send(broadcastAddress, (uint8_t *) &system_status.esp_gcs_status, sizeof(system_status.esp_gcs_status));
@@ -103,5 +118,15 @@ void loop() {
         } else {
             last_status_ms += STATUS_RATE;
         }
+        Serial.println(F("GCS--- Teensy Status ---"));
+        Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
+        Serial.print(F("AC State:    ")); Serial.println(system_status.teensy_status.ac_state);
+        Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
+        Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
+        Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
+        Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
+        Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
+        Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
     }
+
 }
