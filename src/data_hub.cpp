@@ -1,23 +1,22 @@
 #include "data_hub.h"
 
 // Struct to consolidate all data
-AllData all_data; 
+AllData g_all_data; 
 // Packed Data Struct
-PackedDataStruct packed_data;
+PackedDataStruct g_packed_data;
 // Command Struct from GCS
-CommandStruct rx_command;
+CommandStruct g_rx_command;
 // Status Struct for both ac and gcs
-statusStruct system_status;
+statusStruct g_system_status;
 
 
 int countweirdrate = 0;
 int count = 0;
 uint32_t previous_time = millis();
 
-void receiveData(){ //This is for the onboard teensy
+void receiveData(CommandStruct &rx_command, statusStruct &system_status){ //This is for the onboard teensy
     if (serialTransfer.available()){
-        uint8_t packetID = serialTransfer.currentPacketID();
-        switch (packetID){
+        switch (serialTransfer.currentPacketID()){
             case CommandPk:
                 serialTransfer.rxObj(rx_command);
                 // If we have multiple packet types, we can use the packetID to determine how to parse the data

@@ -4,17 +4,17 @@
 
 
 // Struct to consolidate all data
-extern AllData all_data;
+extern AllData g_all_data;
 // Packed Data Struct
-extern PackedDataStruct packed_data;
+extern PackedDataStruct g_packed_data;
 // Command Struct from GCS
-extern CommandStruct rx_command;
+extern CommandStruct g_rx_command;
 // Status Struct for both ac and gcs
-extern statusStruct system_status;
+extern statusStruct g_system_status;
 
 void setupSD(statusStruct &system_status);
 void cleanupSD();
 void logData(PackedDataStruct &packed_data);
 void packData(AllData &all_data, PackedDataStruct &packed_data);
 void sendData(PackedDataStruct &packed_data, statusStruct &system_status);
-void receiveData();
+void receiveData(CommandStruct &rx_command, statusStruct &system_status);

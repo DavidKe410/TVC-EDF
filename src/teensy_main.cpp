@@ -18,28 +18,28 @@ void setup() {
 
     //setupSD(system_status);
 
-    setupBNO085(system_status); // This starts a wire that the ISM can use...AND overwrites the setClock speed to soemthing slower????wtf is wrong with this sensor
+    setupBNO085(g_system_status); // This starts a wire that the ISM can use...AND overwrites the setClock speed to soemthing slower????wtf is wrong with this sensor
 
     Wire.setClock(400000);
 
-    setupISM330(system_status);
+    setupISM330(g_system_status);
 
     delay(300);
-    system_status.teensy_status.ac_state = 1;
+    g_system_status.teensy_status.ac_state = 1;
     serialTransfer.reset(); // just to clear out any garbage data that might be in the buffer from before setup
 }
 
 void loop() {
     unsigned long startMillis = millis();
     while (loopCount < 400) {
-        all_data.overall_time = millis();
-        readBNO085(all_data.imu);
-        readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
-        packData(all_data, packed_data);
+        g_all_data.overall_time = millis();
+        readBNO085(g_all_data.imu);
+        readISM330(g_all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
+        packData(g_all_data, g_packed_data);
         //logData(packed_data);
-        sendData(packed_data, system_status); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
-        receiveData();
-        system_status.teensy_status.ac_state = 2;
+        sendData(g_packed_data, g_system_status); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
+        receiveData(g_rx_command, g_system_status);
+        g_system_status.teensy_status.ac_state = 2;
         // while ((millis() - startMillis) < (loopCount * CYCLE_TIME_MS)) {
         //     // wait until next cycle
         //     delayMicroseconds(100);
