@@ -24,9 +24,15 @@ struct AllData {
     int8_t state = 0;
 }; // Global variable to hold all data
 
+enum PacketType : uint8_t {
+    TelemetryPk = 0,
+    CommandPk = 1,
+    StatusPk = 2
+};
+
 // Packed Data Struct
 struct __attribute__((packed)) PackedDataStruct {
-    uint8_t packet_type = 0;
+    uint8_t packet_type = TelemetryPk;
     uint32_t overall_time;
     int8_t state;
     uint32_t accel_time;
@@ -44,7 +50,7 @@ struct __attribute__((packed)) PackedDataStruct {
 };
 
 struct __attribute__((packed)) CommandStruct {
-    uint8_t packet_type = 1;
+    uint8_t packet_type = CommandPk;
     uint32_t overall_time = millis();
     int8_t state = 1;
     uint16_t servo1 = random(1000,2000);
@@ -55,7 +61,7 @@ struct __attribute__((packed)) CommandStruct {
 };
 
 struct __attribute__((packed)) teensyStatus {
-    uint8_t packet_type = 2;
+    uint8_t packet_type = StatusPk;
     uint32_t overall_time = millis();
     int8_t ac_state = -1;
     int8_t bno_state = -1;
@@ -64,12 +70,12 @@ struct __attribute__((packed)) teensyStatus {
 };
 
 struct __attribute__((packed)) espACStatus { //for future proofing atp but currently just holds the state of the AC
-    uint8_t packet_type = 2;
+    uint8_t packet_type = StatusPk;
     int8_t esp_ac_state = -1;
 };
 
 struct __attribute__((packed)) espGCSStatus {
-    uint8_t packet_type = 2;
+    uint8_t packet_type = StatusPk;
     int8_t esp_gcs_state = -1;
 };
 

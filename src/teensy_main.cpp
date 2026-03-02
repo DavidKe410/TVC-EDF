@@ -9,9 +9,9 @@ void setup() {
 
     Serial.begin(115200);
     //while (!Serial) delay(10); // will pause until serial console opens
-    delay(500);
+    delay(300);
 
-    //Serial7.addMemoryForRead(2048); // just for more head room
+    Serial7.addMemoryForRead(rx_buffer, sizeof(rx_buffer)); // just for more head room
     Serial7.addMemoryForWrite(tx_buffer, sizeof(tx_buffer));
     Serial7.begin(serialT_Baud); // Should be able to increase as needed
     serialTransfer.begin(Serial7, true, Serial, serialT_timeout); //default 50, may decrease if rx commands at higher rate
@@ -24,7 +24,7 @@ void setup() {
 
     setupISM330(system_status);
 
-    delay(500);
+    delay(300);
     system_status.teensy_status.ac_state = 1;
     serialTransfer.reset(); // just to clear out any garbage data that might be in the buffer from before setup
 }
@@ -33,7 +33,6 @@ void loop() {
     unsigned long startMillis = millis();
     while (loopCount < 400) {
         all_data.overall_time = millis();
-        //delayMicroseconds(160);
         readBNO085(all_data.imu);
         readISM330(all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
         packData(all_data, packed_data);

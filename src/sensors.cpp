@@ -4,6 +4,8 @@
 Adafruit_BNO08x  bno08x(-1);
 sh2_SensorValue_t sensorValue;
 uint32_t reportIntervalUs = 2000;
+uint32_t bnoResetTimer = 0;
+bool bnoReady = true;
 //====== End BNO085 ======
 
 // ======= ISM330DLC =======
@@ -61,22 +63,26 @@ void readISM330(IMUData &data) {
 void readBNO085(IMUData &data) {
     if (bno08x.wasReset()) {
         Serial.println("BNO085 was reset.");
-        setReports(SH2_ROTATION_VECTOR, 2000);
-        delay(300);
+        setReports(SH2_ROTATION_VECTOR, reportIntervalUs);
+        bnoResetTimer = millis(); // Don't want a blocking delay, so just keep things moving w/ old data
+        bnoReady = false;
     }
-    if (bno08x.getSensorEvent(&sensorValue)) {
+    if (bnoReady && bno08x.getSensorEvent(&sensorValue)) {
         data.orien_cali_status = sensorValue.status;
-        switch (sensorValue.sensorId) {
+        switch (sensorValue.sensorId) { // welp just have one report type rn, so kinda unnecessary
             case SH2_ROTATION_VECTOR:
                 data.real = sensorValue.un.rotationVector.real;
                 data.i = sensorValue.un.rotationVector.i;
                 data.j = sensorValue.un.rotationVector.j;
                 data.k = sensorValue.un.rotationVector.k;
                 data.orien_time = millis();
-                loopCount++;
+                loopCount++; // for the main loop hz testing, can remove later
                 break;
         }
     } else {
+        if (millis() - bnoResetTimer > 150) {
+            bnoReady = true;
+        }
         data.orien_cali_status = -1; // for bad data or specifying that now the data is slightly old
     }
 }

@@ -25,9 +25,9 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 // Callback when data is received, this is specifically from GCS as its ESP-NOW
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
-    if (packetID == 1 && len == sizeof(tx_command_data)) {
+    if (packetID == CommandPk && len == sizeof(tx_command_data)) {
         memcpy(&tx_command_data, incomingData, len);
-    }else if (packetID == 2 && len == sizeof(system_status.esp_gcs_status)) {
+    }else if (packetID == StatusPk && len == sizeof(system_status.esp_gcs_status)) {
         memcpy(&system_status.esp_gcs_status, incomingData, len);
     } else {
         Serial.print("Received packet with unknown format. Packet ID: ");
@@ -85,77 +85,73 @@ int count = 0;
 uint32_t previous_time = millis();
 
 void loop() {
-    // Serial.println("Starting loop");
-    // unsigned long startMillis = millis();
-    // while (count < 400) {
-        
-        if (serialTransfer.available()) {// getting held up by stale packet here
-            uint8_t packetID = serialTransfer.currentPacketID();
-            switch (packetID){
-                case 0:
-                    serialTransfer.rxObj(rx_packed_data);
-                    if (result == ESP_OK) {
-                        result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
+    if (serialTransfer.available()) {// getting held up by stale packet here
+        switch (serialTransfer.currentPacketID()){
+            case TelemetryPk:
+                serialTransfer.rxObj(rx_packed_data);
+                if (result == ESP_OK) {
+                    result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
+                }
+                count++;
+                if (count == 400) {
+                    uint32_t current_time = millis();
+                    float rate = 1000/((current_time - previous_time)/400.0);
+                    if (rate < 95 || rate > 105) {
+                        countweirdrate++;
                     }
-                    count++;
-                    if (count == 400) {
-                        uint32_t current_time = millis();
-                        float rate = 1000/((current_time - previous_time)/400.0);
-                        if (rate < 95 || rate > 105) {
-                            countweirdrate++;
-                        }
-                        Serial.println("Received 400 packets, average rate: " + String(rate, 4) + " packets/s");
-                        previous_time = current_time;
-                        count = 0;
-                    }
-                    break;
-                case 2:
-                    serialTransfer.rxObj(system_status.teensy_status);
-                    break;
-            }
-            // Serial.print("\r\nLast Packet Send Status:\t");
-            // Serial.println(result == ESP_OK ? "Success" : "Fail");
-            //count++;
+                    Serial.println("Received 400 packets, average rate: " + String(rate, 4) + " packets/s");
+                    previous_time = current_time;
+                    count = 0;
+                }
+                break;
+            case StatusPk:
+                serialTransfer.rxObj(system_status.teensy_status);
+                break;
         }
-        uint32_t current_time = millis();
-        if (current_time - last_status_ms >= STATUS_RATE) { // Sending GCS and AC status over to Teensy through HWSerial + SerialTransfer
-            if ((size_t)HWSerial1.availableForWrite() >= (AC_GCS_status_size + 20)) {
-                serialTransfer.txObj(system_status.esp_ac_status);
-                serialTransfer.txObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg
-                serialTransfer.sendData(AC_GCS_status_size, 2);
-            } else {
-                Serial.println("Dropped a system status packet, AC to Teensy");
-            }
-            if (result == ESP_OK) {
-                esp_now_send(broadcastAddress, (uint8_t *) &system_status, teensy_AC_status_size); // Just need to send Teensy and AC since GCS has its own truth
-            }
-            if (current_time - last_status_ms > 5 * STATUS_RATE) {
-                last_status_ms = current_time; // reset if behind
-            }else{
-                last_status_ms += STATUS_RATE;
-            }
-            count++;
-            Serial.println(F("AC--- Teensy Status ---"));
-            Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
-            Serial.print(F("AC State:    ")); Serial.println(system_status.teensy_status.ac_state);
-            Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
-            Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
-            Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
-            Serial.println(F("---------------------"));
-            Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
-            Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
-            Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
+        // Serial.print("\r\nLast Packet Send Status:\t");
+        // Serial.println(result == ESP_OK ? "Success" : "Fail");
+        //count++;
+    }
+    uint32_t current_cmd_time = millis();
+    if (current_cmd_time - last_cmd_ms >= COMMAND_RATE && system_status.teensy_status.ac_state > -1) {
+        if (current_cmd_time - last_cmd_ms > 5 * COMMAND_RATE) {
+            last_cmd_ms = current_cmd_time; // reset if behind
+        }else{
+            last_cmd_ms += COMMAND_RATE;
         }
-    // }
-    // unsigned long endMillis = millis();
-    // Serial.println("time taken: " + String(1000/((endMillis - startMillis)/400.0), 4));
-    // count = 0;
-    // Serial.println("buffering");
-    // while(millis() - endMillis < 5000) {
-    //     if (serialTransfer.available()) {
-    //         serialTransfer.rxObj(rx_packed_data);
-    //     }
-    // }
-    // Serial.println("done buffering");
-    //Serial.println(tx_command_data.overall_time);
+        if ((size_t)HWSerial1.availableForWrite() >= (sizeof(tx_command_data) + availWriteMargin)) {
+            serialTransfer.txObj(tx_command_data);
+            serialTransfer.sendData(sizeof(tx_command_data), CommandPk);
+        } else {
+            Serial.println("Dropped a cmd packet, AC to Teensy");
+        }
+    }
+    uint32_t current_status_time = millis();
+    if (current_status_time - last_status_ms >= STATUS_RATE) { // Sending GCS and AC status over to Teensy through HWSerial + SerialTransfer
+        if ((size_t)HWSerial1.availableForWrite() >= (AC_GCS_status_size + availWriteMargin)) {
+            serialTransfer.txObj(system_status.esp_ac_status);
+            serialTransfer.txObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg
+            serialTransfer.sendData(AC_GCS_status_size, StatusPk);
+        } else {
+            Serial.println("Dropped a system status packet, AC to Teensy");
+        }
+        if (result == ESP_OK) {
+            esp_now_send(broadcastAddress, (uint8_t *) &system_status, teensy_AC_status_size); // Just need to send Teensy and AC since GCS has its own truth
+        }
+        if (current_status_time - last_status_ms > 5 * STATUS_RATE) {
+            last_status_ms = current_status_time; // reset if behind
+        }else{
+            last_status_ms += STATUS_RATE;
+        }
+        Serial.println(F("AC--- Teensy Status ---"));
+        Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
+        Serial.print(F("AC State:    ")); Serial.println(system_status.teensy_status.ac_state);
+        Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
+        Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
+        Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
+        Serial.println(F("---------------------"));
+        Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
+        Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
+        Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
+    }
 }

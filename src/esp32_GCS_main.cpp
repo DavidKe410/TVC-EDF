@@ -16,9 +16,7 @@ esp_err_t result = ESP_OK;
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-    //Serial.print("\r\nLast Packet Send Status:\t");
     result = ESP_OK; // clearing buffer by 1 i geuss, so potentially be able to send again
-    //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
 }
 
 int countweirdrate = 0;
@@ -28,7 +26,7 @@ uint32_t previous_time = millis();
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
-    if (packetID == 0 && len == sizeof(PackedDataStruct)) {
+    if (packetID == TelemetryPk && len == sizeof(PackedDataStruct)) {
         memcpy(&rx_packed_data, incomingData, len);
         count++;
         if (count == 400) {
@@ -41,9 +39,9 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
             previous_time = current_time;
             count = 0;
         }
-    } else if (packetID == 1 && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
+    } else if (packetID == CommandPk && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
         memcpy(&tx_command_data, incomingData, len);
-    } else if (packetID == 2 && len == teensy_AC_status_size) {
+    } else if (packetID == StatusPk && len == teensy_AC_status_size) {
         memcpy(&system_status.teensy_status, incomingData, len);
     } else {
         Serial.print("Received packet with unknown format. Packet ID: ");
@@ -94,6 +92,7 @@ void loop() {
     uint32_t current_time = millis();
     if (current_time - last_cmd_ms >= COMMAND_RATE) {
         if (result == ESP_OK) {
+            tx_command_data.overall_time = current_time;
             result = esp_now_send(broadcastAddress, (uint8_t *) &tx_command_data, sizeof(tx_command_data));
         } else {
             Serial.println("ESP32 GCS not ready for ESP_NOW Command Send");

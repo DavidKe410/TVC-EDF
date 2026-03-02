@@ -13,11 +13,13 @@ extern uint32_t last_status_ms;
 
 extern uint32_t last_cmd_ms;
 
-constexpr uint8_t COMMAND_RATE = 100;
+constexpr uint8_t COMMAND_RATE = 10;
 
 constexpr uint32_t serialT_Baud = 2000000;
 
 constexpr uint32_t serialT_timeout = 5; // ms
+
+extern uint8_t availWriteMargin;
 
 #ifdef ESP32
     #include <esp_wifi_types.h>
@@ -62,5 +64,10 @@ constexpr uint32_t serialT_timeout = 5; // ms
     // Space to hold around 2s of data.
     constexpr size_t TX_BUF_CAPACITY = TELE_LINE_LENGTH * (1000 / TELE_RATE) * 2;
     extern uint8_t tx_buffer[TX_BUF_CAPACITY];
+
+    constexpr size_t RX_BUF_CAPACITY = 1024; //TELE_LINE_LENGTH * (1000 / TELE_RATE) * 2;
+    extern uint8_t rx_buffer[RX_BUF_CAPACITY];
+
     //====== End Telemetry/Commands =======
+
 #endif

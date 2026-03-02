@@ -9,15 +9,31 @@ CommandStruct rx_command;
 // Status Struct for both ac and gcs
 statusStruct system_status;
 
+
+int countweirdrate = 0;
+int count = 0;
+uint32_t previous_time = millis();
+
 void receiveData(){ //This is for the onboard teensy
     if (serialTransfer.available()){
         uint8_t packetID = serialTransfer.currentPacketID();
         switch (packetID){
-            case 1:
+            case CommandPk:
                 serialTransfer.rxObj(rx_command);
                 // If we have multiple packet types, we can use the packetID to determine how to parse the data
+                count++;
+                if (count == 400) {
+                    uint32_t current_time = millis();
+                    float rate = 1000/((current_time - previous_time)/400.0);
+                    if (rate < 95 || rate > 105) {
+                        countweirdrate++;
+                    }
+                    Serial.println("Received 400 packets, average rate: " + String(rate, 4) + " packets/s");
+                    previous_time = current_time;
+                    count = 0;
+                }
                 break;
-            case 2:
+            case StatusPk:
                 serialTransfer.rxObj(system_status.esp_ac_status);
                 serialTransfer.rxObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // If rxObj removes it from the buffer, could this sizeof just be 0
                 break;
@@ -48,10 +64,9 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
 
     // Rate limit telemetry to TELE_RATE
     if (packed_data.overall_time - last_tele_ms >= TELE_RATE) { // Using packed_data.overall_time as millis()
-        // Only send if there is enough room for the packet (100 bytes + overhead)
-        if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + 20)) {
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + availWriteMargin)) {
             serialTransfer.txObj(packed_data);
-            serialTransfer.sendData(sizeof(packed_data), 0);
+            serialTransfer.sendData(sizeof(packed_data), TelemetryPk);
         } else {
             Serial.println("Dropped a telemetry packet to ESP32");
         }
@@ -65,10 +80,10 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
     }
 
     if (packed_data.overall_time - last_status_ms >= STATUS_RATE) {
-        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + 20)) {
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + availWriteMargin)) {
             system_status.teensy_status.overall_time = packed_data.overall_time; 
             serialTransfer.txObj(system_status.teensy_status);
-            serialTransfer.sendData(sizeof(system_status.teensy_status), 2); // status packet id = 2
+            serialTransfer.sendData(sizeof(system_status.teensy_status), StatusPk); // status packet id = 2
         } else {
             Serial.println("Dropped a system status packet");
         }
@@ -87,6 +102,7 @@ void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
         Serial.println(F("---------------------"));
         Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
         Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
+        Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
     }
 
 }

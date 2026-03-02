@@ -17,6 +17,8 @@ uint16_t loopCount = 0;
     uint32_t last_tele_ms = 0;
 
     uint8_t tx_buffer[TX_BUF_CAPACITY];
+
+    uint8_t rx_buffer[RX_BUF_CAPACITY];
 #endif
 SerialTransfer serialTransfer;
 //====== End Telemetry =======
@@ -24,3 +26,5 @@ SerialTransfer serialTransfer;
 uint32_t last_status_ms = 0;
 
 uint32_t last_cmd_ms = 0;
+
+uint8_t availWriteMargin = 15;
