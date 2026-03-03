@@ -18,3 +18,4 @@ void logData(PackedDataStruct &packed_data);
 void packData(AllData &all_data, PackedDataStruct &packed_data);
 void sendData(PackedDataStruct &packed_data, statusStruct &system_status);
 void receiveData(CommandStruct &rx_command, statusStruct &system_status);
+void processCMD(CommandStruct &rx_command, statusStruct &system_status);

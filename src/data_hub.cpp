@@ -14,6 +14,12 @@ int countweirdrate = 0;
 int count = 0;
 uint32_t previous_time = millis();
 
+void processCMD(CommandStruct &rx_command, statusStruct &system_status) { // have a list of processed commands so we don't process multiple times?
+    if (rx_command.typeCmd == 1){ // all of this kinda like a placeholder, simple ack
+        system_status.teensy_status.cmd_ack_ID = rx_command.cmd_ID;
+    }
+}
+
 void receiveData(CommandStruct &rx_command, statusStruct &system_status){ //This is for the onboard teensy
     if (serialTransfer.available()){
         switch (serialTransfer.currentPacketID()){
@@ -35,8 +41,13 @@ void receiveData(CommandStruct &rx_command, statusStruct &system_status){ //This
             case StatusPk:
                 serialTransfer.rxObj(system_status.esp_ac_status);
                 serialTransfer.rxObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // If rxObj removes it from the buffer, could this sizeof just be 0
+                last_status_rx = millis();
                 break;
         }
+    }
+    if (millis()-last_status_rx >= heartbeat_timeout) {
+        system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
+        system_status.esp_gcs_status.esp_gcs_state = -2; // mark as disconnected
     }
 }
 
@@ -59,10 +70,9 @@ void packData(AllData &data, PackedDataStruct &packed) {
 }
 
 void sendData(PackedDataStruct &packed_data, statusStruct &system_status) {
-    if (system_status.esp_ac_status.esp_ac_state == -1){ return; }
 
     // Rate limit telemetry to TELE_RATE
-    if (packed_data.overall_time - last_tele_ms >= TELE_RATE) { // Using packed_data.overall_time as millis()
+    if ((packed_data.overall_time - last_tele_ms >= TELE_RATE) && (system_status.esp_ac_status.esp_ac_state > -1)) { // Using packed_data.overall_time as millis()
         if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + availWriteMargin)) {
             serialTransfer.txObj(packed_data);
             serialTransfer.sendData(sizeof(packed_data), TelemetryPk);

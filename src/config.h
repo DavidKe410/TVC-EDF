@@ -7,9 +7,13 @@ extern uint16_t loopCount;
 
 extern SerialTransfer serialTransfer;
 
-constexpr uint16_t STATUS_RATE = 1000; // idk why we need this to be constexpr
+constexpr uint16_t STATUS_RATE = 500; // idk why we need this to be constexpr
 
 extern uint32_t last_status_ms;
+
+extern uint32_t last_status_rx;
+
+constexpr uint16_t heartbeat_timeout = STATUS_RATE * 3;
 
 extern uint32_t last_cmd_ms;
 

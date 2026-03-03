@@ -51,13 +51,15 @@ struct __attribute__((packed)) PackedDataStruct {
 
 struct __attribute__((packed)) CommandStruct {
     uint8_t packet_type = CommandPk;
+    uint8_t typeCmd = 0; // maybe redundant with the manual control flag, could specify for an ack back
+    int8_t state = 1; // 0 idle, 1 auto, 2 manual
     uint32_t overall_time = millis();
-    int8_t state = 1;
     uint16_t servo1 = random(1000,2000);
     uint16_t servo2 = random(1000,2000);
     uint16_t servo3 = random(1000,2000);
     uint16_t servo4 = random(1000,2000);
     uint16_t motor = random(1000,2000);
+    uint16_t cmd_ID = 0; // may have teensy send back with particular ack num matching GCS
 };
 
 struct __attribute__((packed)) teensyStatus {
@@ -67,6 +69,7 @@ struct __attribute__((packed)) teensyStatus {
     int8_t bno_state = -1;
     int8_t ism_state = -1;
     int8_t sd_state = -1;
+    uint16_t cmd_ack_ID = 0;
 };
 
 struct __attribute__((packed)) espACStatus { //for future proofing atp but currently just holds the state of the AC

@@ -6,15 +6,17 @@
 #include "config.h"
 
 HardwareSerial HWSerial1(0);
-PackedDataStruct rx_packed_data;
-CommandStruct tx_command_data;
-statusStruct system_status;
+PackedDataStruct g_packed_data;
+CommandStruct g_command_data;
+statusStruct g_system_status;
 
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
 
 // Receiver (GCS) MAC Address
 uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xF4, 0x6C};
+
+uint32_t last_GCS_status = 0;
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -25,10 +27,19 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 // Callback when data is received, this is specifically from GCS as its ESP-NOW
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
-    if (packetID == CommandPk && len == sizeof(tx_command_data)) {
-        memcpy(&tx_command_data, incomingData, len);
-    }else if (packetID == StatusPk && len == sizeof(system_status.esp_gcs_status)) {
-        memcpy(&system_status.esp_gcs_status, incomingData, len);
+    if (packetID == CommandPk && len == sizeof(CommandStruct)) {
+        memcpy(&g_command_data, incomingData, len); // Potentially a way of directly using incomingData w/o memcpy, but this works for now
+        if (g_system_status.teensy_status.ac_state > -1) {
+            if ((size_t)HWSerial1.availableForWrite() >= (len + availWriteMargin)) {
+                serialTransfer.txObj(g_command_data);
+                serialTransfer.sendData(len, CommandPk);
+            } else {
+                Serial.println("Dropped a cmd packet, AC to Teensy");
+            }
+        }
+    }else if (packetID == StatusPk && len == sizeof(g_system_status.esp_gcs_status)) {
+        memcpy(&g_system_status.esp_gcs_status, incomingData, len);
+        last_GCS_status = millis();
     } else {
         Serial.print("Received packet with unknown format. Packet ID: ");
         Serial.print(packetID);
@@ -77,7 +88,7 @@ void setup() {
     delay(50);
     serialTransfer.reset(); // just to clear out any garbage data that might be in the buffer from before setup
     Serial.println("ESP setup complete");
-    system_status.esp_ac_status.esp_ac_state = 1;
+    g_system_status.esp_ac_status.esp_ac_state = 1;
 }
 
 int countweirdrate = 0;
@@ -88,9 +99,9 @@ void loop() {
     if (serialTransfer.available()) {// getting held up by stale packet here
         switch (serialTransfer.currentPacketID()){
             case TelemetryPk:
-                serialTransfer.rxObj(rx_packed_data);
+                serialTransfer.rxObj(g_packed_data);
                 if (result == ESP_OK) {
-                    result = esp_now_send(broadcastAddress, (uint8_t *) &rx_packed_data, sizeof(rx_packed_data));
+                    result = esp_now_send(broadcastAddress, (uint8_t *) &g_packed_data, sizeof(g_packed_data));
                 }
                 count++;
                 if (count == 400) {
@@ -105,32 +116,27 @@ void loop() {
                 }
                 break;
             case StatusPk:
-                serialTransfer.rxObj(system_status.teensy_status);
+                serialTransfer.rxObj(g_system_status.teensy_status);
+                last_status_rx = millis();
                 break;
         }
         // Serial.print("\r\nLast Packet Send Status:\t");
         // Serial.println(result == ESP_OK ? "Success" : "Fail");
         //count++;
     }
-    uint32_t current_cmd_time = millis();
-    if (current_cmd_time - last_cmd_ms >= COMMAND_RATE && system_status.teensy_status.ac_state > -1) {
-        if (current_cmd_time - last_cmd_ms > 5 * COMMAND_RATE) {
-            last_cmd_ms = current_cmd_time; // reset if behind
-        }else{
-            last_cmd_ms += COMMAND_RATE;
-        }
-        if ((size_t)HWSerial1.availableForWrite() >= (sizeof(tx_command_data) + availWriteMargin)) {
-            serialTransfer.txObj(tx_command_data);
-            serialTransfer.sendData(sizeof(tx_command_data), CommandPk);
-        } else {
-            Serial.println("Dropped a cmd packet, AC to Teensy");
-        }
+    
+    if (millis()-last_status_rx >= heartbeat_timeout) {
+        g_system_status.teensy_status.ac_state = -2; // mark as disconnected
     }
+    if (millis()-last_GCS_status >= heartbeat_timeout) {
+        g_system_status.esp_gcs_status.esp_gcs_state = -2; // mark as disconnected
+    }
+
     uint32_t current_status_time = millis();
     if (current_status_time - last_status_ms >= STATUS_RATE) { // Sending GCS and AC status over to Teensy through HWSerial + SerialTransfer
         if ((size_t)HWSerial1.availableForWrite() >= (AC_GCS_status_size + availWriteMargin)) {
-            serialTransfer.txObj(system_status.esp_ac_status);
-            serialTransfer.txObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg
+            serialTransfer.txObj(g_system_status.esp_ac_status);
+            serialTransfer.txObj(g_system_status.esp_gcs_status, sizeof(g_system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg
             serialTransfer.sendData(AC_GCS_status_size, StatusPk);
         } else {
             Serial.println("Dropped a system status packet, AC to Teensy");

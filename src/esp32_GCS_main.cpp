@@ -7,9 +7,9 @@
 // Receiver (onboard ESP) MAC Address
 uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
 
-PackedDataStruct rx_packed_data;
-CommandStruct tx_command_data;
-statusStruct system_status;
+PackedDataStruct g_packed_data;
+CommandStruct g_command_data;
+statusStruct g_system_status;
 
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
@@ -27,7 +27,7 @@ uint32_t previous_time = millis();
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
     if (packetID == TelemetryPk && len == sizeof(PackedDataStruct)) {
-        memcpy(&rx_packed_data, incomingData, len);
+        memcpy(&g_packed_data, incomingData, len);
         count++;
         if (count == 400) {
             uint32_t current_time = millis();
@@ -39,10 +39,11 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
             previous_time = current_time;
             count = 0;
         }
-    } else if (packetID == CommandPk && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
-        memcpy(&tx_command_data, incomingData, len);
+    // } else if (packetID == CommandPk && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
+    //     memcpy(&tx_command_data, incomingData, len);
     } else if (packetID == StatusPk && len == teensy_AC_status_size) {
-        memcpy(&system_status.teensy_status, incomingData, len);
+        memcpy(&g_system_status.teensy_status, incomingData, len);
+        last_status_rx = millis();
     } else {
         Serial.print("Received packet with unknown format. Packet ID: ");
         Serial.print(packetID);
@@ -84,18 +85,20 @@ void setup() {
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);
     Serial.println("GCS ESP32 setup complete");
-    system_status.esp_gcs_status.esp_gcs_state = 1;
+    g_system_status.esp_gcs_status.esp_gcs_state = 1;
 }
 
 void loop() {
+    if (millis()-last_status_rx >= heartbeat_timeout) {
+        g_system_status.teensy_status.ac_state = -2; // mark as disconnected
+        g_system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
+    }
+
     // Set values to send
     uint32_t current_time = millis();
     if (current_time - last_cmd_ms >= COMMAND_RATE) {
         if (result == ESP_OK) {
-            tx_command_data.overall_time = current_time;
-            result = esp_now_send(broadcastAddress, (uint8_t *) &tx_command_data, sizeof(tx_command_data));
-        } else {
-            Serial.println("ESP32 GCS not ready for ESP_NOW Command Send");
+            result = esp_now_send(broadcastAddress, (uint8_t *) &g_command_data, sizeof(g_command_data));
         }
 
         if (current_time - last_cmd_ms > 5 * COMMAND_RATE) {
@@ -107,9 +110,7 @@ void loop() {
     //Serial.println("current_time: " + String(current_time) + ", last_status_ms: " + String(last_status_ms));
     if (current_time - last_status_ms >= STATUS_RATE) {
         if (result == ESP_OK) {
-            result = esp_now_send(broadcastAddress, (uint8_t *) &system_status.esp_gcs_status, sizeof(system_status.esp_gcs_status));
-        } else {
-            Serial.println("ESP32 GCS not ready for ESP_NOW Status Send");
+            result = esp_now_send(broadcastAddress, (uint8_t *) &g_system_status.esp_gcs_status, sizeof(g_system_status.esp_gcs_status));
         }
 
         if (current_time - last_status_ms > 5 * STATUS_RATE) {
@@ -118,13 +119,13 @@ void loop() {
             last_status_ms += STATUS_RATE;
         }
         Serial.println(F("GCS--- Teensy Status ---"));
-        Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
-        Serial.print(F("AC State:    ")); Serial.println(system_status.teensy_status.ac_state);
-        Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
-        Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
-        Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
-        Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
-        Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
+        Serial.print(F("Time (ms):   ")); Serial.println(g_system_status.teensy_status.overall_time);
+        Serial.print(F("AC State:    ")); Serial.println(g_system_status.teensy_status.ac_state);
+        Serial.print(F("BNO State:   ")); Serial.println(g_system_status.teensy_status.bno_state);
+        Serial.print(F("ISM State:   ")); Serial.println(g_system_status.teensy_status.ism_state);
+        Serial.print(F("SD State:    ")); Serial.println(g_system_status.teensy_status.sd_state);
+        Serial.print(F("ESP AC State:  ")); Serial.println(g_system_status.esp_ac_status.esp_ac_state);
+        Serial.print(F("ESP GCS State: ")); Serial.println(g_system_status.esp_gcs_status.esp_gcs_state);
         Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
     }
 
