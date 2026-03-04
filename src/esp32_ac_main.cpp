@@ -125,11 +125,13 @@ void loop() {
         //count++;
     }
     
-    if (millis()-last_status_rx >= heartbeat_timeout) {
+    if ((millis()-last_status_rx) >= heartbeat_timeout) {
         g_system_status.teensy_status.ac_state = -2; // mark as disconnected
     }
-    if (millis()-last_GCS_status >= heartbeat_timeout) {
+    Serial.println(millis() - last_GCS_status);
+    if ((millis()-last_GCS_status) >= heartbeat_timeout) {
         g_system_status.esp_gcs_status.esp_gcs_state = -2; // mark as disconnected
+        g_system_status.laptop_status.laptop_state = -2;
     }
 
     uint32_t current_status_time = millis();
@@ -156,9 +158,10 @@ void loop() {
         Serial.print(F("BNO State:   ")); Serial.println(g_system_status.teensy_status.bno_state);
         Serial.print(F("ISM State:   ")); Serial.println(g_system_status.teensy_status.ism_state);
         Serial.print(F("SD State:    ")); Serial.println(g_system_status.teensy_status.sd_state);
-        Serial.println(F("---------------------"));
         Serial.print(F("ESP AC State:  ")); Serial.println(g_system_status.esp_ac_status.esp_ac_state);
         Serial.print(F("ESP GCS State: ")); Serial.println(g_system_status.esp_gcs_status.esp_gcs_state);
+        Serial.print(F("Laptop State: ")); Serial.println(g_system_status.laptop_status.laptop_state);
         Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
+        Serial.println(F("---------------------"));
     }
 }

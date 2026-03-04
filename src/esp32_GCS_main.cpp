@@ -14,6 +14,8 @@ StatusStruct g_system_status;
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
 
+uint32_t last_laptop_status = 0;
+
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     result = ESP_OK; // clearing buffer by 1 i geuss, so potentially be able to send again
@@ -90,7 +92,7 @@ void loop() {
                 break;
             case StatusPk:
                 serialTransfer.rxObj(g_system_status.laptop_status);
-                last_status_rx = millis();
+                last_laptop_status = millis();
                 break;
         }
         // Serial.print("\r\nLast Packet Send Status:\t");
@@ -98,9 +100,13 @@ void loop() {
         //count++;
     }
 
-    if (millis()-last_status_rx >= heartbeat_timeout) {
+    if ((millis()-last_status_rx) >= heartbeat_timeout) {
         g_system_status.teensy_status.ac_state = -2; // mark as disconnected
         g_system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
+    }
+
+    if ((millis()-last_laptop_status) >= heartbeat_timeout) {
+        g_system_status.laptop_status.laptop_state = -2;
     }
 
     // Set values to send

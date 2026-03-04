@@ -40,14 +40,16 @@ void receiveData(CommandStruct &command, StatusStruct &system_status){ //This is
                 break;
             case StatusPk:
                 serialTransfer.rxObj(system_status.esp_ac_status);
-                serialTransfer.rxObj(system_status.esp_gcs_status, sizeof(system_status.esp_ac_status)); // If rxObj removes it from the buffer, could this sizeof just be 0
+                serialTransfer.rxObj(system_status.esp_gcs_status, sizeof(espACStatus)); // If rxObj removes it from the buffer, could this sizeof just be 0
+                serialTransfer.rxObj(system_status.laptop_status, sizeof(espACStatus) + sizeof(espGCSStatus));
                 last_status_rx = millis();
                 break;
         }
     }
-    if (millis()-last_status_rx >= heartbeat_timeout) {
+    if ((millis()-last_status_rx) >= heartbeat_timeout) {
         system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
         system_status.esp_gcs_status.esp_gcs_state = -2; // mark as disconnected
+        system_status.laptop_status.laptop_state = -2;
     }
 }
 
@@ -108,10 +110,11 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
         Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
         Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
         Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
-        Serial.println(F("---------------------"));
         Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
         Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
-        Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
+        Serial.print(F("Laptop State: ")); Serial.println(system_status.laptop_status.laptop_state);
+        Serial.print(F("Werid cmd rate:  ")); Serial.println(countweirdrate);
+        Serial.println(F("---------------------"));
     }
 
 }
