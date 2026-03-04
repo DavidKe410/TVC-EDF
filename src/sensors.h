@@ -15,8 +15,8 @@ extern SparkFun_ISM330DHCX ism330;
 extern sfe_ism_data_t accelData;
 // ======= End ISM330DLC =======
 
-void setupBNO085(statusStruct &system_status);
+void setupBNO085(StatusStruct &system_status);
 void setReports(sh2_SensorId_t reportType, uint32_t report_interval);
 void readBNO085(IMUData &data);
-void setupISM330(statusStruct &system_status);
+void setupISM330(StatusStruct &system_status);
 void readISM330(IMUData &data);

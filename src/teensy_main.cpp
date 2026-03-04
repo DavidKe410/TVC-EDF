@@ -38,7 +38,7 @@ void loop() {
         packData(g_all_data, g_packed_data);
         //logData(packed_data);
         sendData(g_packed_data, g_system_status); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
-        receiveData(g_rx_command, g_system_status);
+        receiveData(g_command, g_system_status);
         g_system_status.teensy_status.ac_state = 2;
         // while ((millis() - startMillis) < (loopCount * CYCLE_TIME_MS)) {
         //     // wait until next cycle
