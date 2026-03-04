@@ -26,11 +26,13 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
     if (packetID == TelemetryPk && len == sizeof(PackedDataStruct)) {
         memcpy(&g_packed_data, incomingData, len);
-        if ((size_t)Serial.availableForWrite() >= (sizeof(PackedDataStruct) + availWriteMargin)) {
-            serialTransfer.txObj(g_packed_data);
-            serialTransfer.sendData(sizeof(PackedDataStruct), TelemetryPk);
-        } else {
-            Serial.println("Dropped a telemetry packet, GCS to Laptop");
+        if (g_system_status.laptop_status.laptop_state > -1) {
+            if ((size_t)Serial.availableForWrite() >= (sizeof(PackedDataStruct) + availWriteMargin)) {
+                serialTransfer.txObj(g_packed_data);
+                serialTransfer.sendData(sizeof(PackedDataStruct), TelemetryPk);
+            } else {
+                Serial.println("Dropped a telemetry packet, GCS to Laptop");
+            }
         }
     } else if (packetID == StatusPk && len == teensy_AC_status_size) {
         memcpy(&g_system_status.teensy_status, incomingData, len);
@@ -113,6 +115,15 @@ void loop() {
     uint32_t current_time = millis();
     
     if (current_time - last_status_ms >= STATUS_RATE) {
+        if ((size_t)Serial.availableForWrite() >= (teensy_AC_status_size + sizeof(espGCSStatus) + availWriteMargin)) {
+            serialTransfer.txObj(g_system_status.teensy_status);
+            serialTransfer.txObj(g_system_status.esp_ac_status, sizeof(g_system_status.teensy_status));
+            serialTransfer.txObj(g_system_status.esp_gcs_status, teensy_AC_status_size); // place gcs status right after ac status in the buffer, thats the index not the size of msg
+            serialTransfer.sendData(teensy_AC_status_size + sizeof(espGCSStatus), StatusPk);
+        } else {
+            Serial.println("Dropped a telemetry packet, GCS to Laptop");
+        }
+
         if (result == ESP_OK) {
             result = esp_now_send(broadcastAddress, (uint8_t *) &g_system_status.esp_gcs_status, (sizeof(espGCSStatus)+sizeof(laptopStatus)));
         }

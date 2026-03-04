@@ -128,7 +128,7 @@ void loop() {
     if ((millis()-last_status_rx) >= heartbeat_timeout) {
         g_system_status.teensy_status.ac_state = -2; // mark as disconnected
     }
-    Serial.println(millis() - last_GCS_status);
+
     if ((millis()-last_GCS_status) >= heartbeat_timeout) {
         g_system_status.esp_gcs_status.esp_gcs_state = -2; // mark as disconnected
         g_system_status.laptop_status.laptop_state = -2;
