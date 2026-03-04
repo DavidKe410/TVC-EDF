@@ -19,6 +19,11 @@ def current_ms():
     return int(time.perf_counter() * 1000)
 
 
+countweirdrate = 0
+count = 0
+previous_time = current_ms()
+
+
 if __name__ == '__main__':
     try:
         serialTransfer = txfer.SerialTransfer('COM7')
@@ -30,6 +35,19 @@ if __name__ == '__main__':
                 if serialTransfer.id_byte == ds.PacketType.TelemetryPk:
                     raw_payload = bytes(serialTransfer.rx_buff[:serialTransfer.bytes_read])
                     ctypes.memmove(ctypes.addressof(g_packed_data), raw_payload, ctypes.sizeof(ds.PackedDataStruct))
+                
+
+                    if (count == 400):
+                        current_time = current_ms()
+                        rate = 1000/((current_time - previous_time)/400.0)
+                        if (rate < 95 or rate > 105):
+                            countweirdrate += 1
+                        print("Received 400 packets, average rate: ")
+                        print(rate)
+                        previous_time = current_time
+                        count = 0
+                    count += 1
+                
                 elif serialTransfer.id_byte == ds.PacketType.StatusPk:
                     raw_status = bytes(serialTransfer.rx_buff[:serialTransfer.bytes_read])
                     ctypes.memmove(ctypes.addressof(g_system_status), raw_status, ctypes.sizeof(ds.StatusStruct)-ctypes.sizeof(ds.laptopStatus))

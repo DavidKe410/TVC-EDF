@@ -1,6 +1,6 @@
 #pragma once
-#include "config.h"
-#include "data_structs.h"
+#include "common/config.h"
+#include "common/data_structs.h"
 #include "SparkFun_ISM330DHCX.h"
 #include <Adafruit_BNO08x.h>
 

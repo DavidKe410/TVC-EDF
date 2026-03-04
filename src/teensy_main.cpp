@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include "config.h"
-#include "data_structs.h"
-#include "data_hub.h"
-#include "sensors.h"
+#include "common/config.h"
+#include "common/globals.h"
+#include "common/data_structs.h"
+#include "teensy/data_hub.h"
+#include "teensy/sensors.h"
 
 void setup() {
 
@@ -13,8 +14,8 @@ void setup() {
 
     Serial7.addMemoryForRead(rx_buffer, sizeof(rx_buffer)); // just for more head room
     Serial7.addMemoryForWrite(tx_buffer, sizeof(tx_buffer));
-    Serial7.begin(serialT_Baud); // Should be able to increase as needed
-    serialTransfer.begin(Serial7, true, Serial, serialT_timeout); //default 50, may decrease if rx commands at higher rate
+    Serial7.begin(config::SERIAL_T_BAUD); // Should be able to increase as needed
+    serialTransfer.begin(Serial7, true, Serial, config::SERIAL_T_TIMEOUT_MS); //default 50, may decrease if rx commands at higher rate
 
     //setupSD(system_status);
 

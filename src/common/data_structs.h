@@ -24,11 +24,15 @@ struct AllData {
     int8_t state = 0;
 }; // Global variable to hold all data
 
+
+
 enum PacketType : uint8_t {
     TelemetryPk = 0,
     CommandPk = 1,
     StatusPk = 2
 };
+
+
 
 // Packed Data Struct
 struct __attribute__((packed)) PackedDataStruct {
@@ -93,6 +97,3 @@ struct __attribute__((packed)) StatusStruct {
     espGCSStatus esp_gcs_status;
     laptopStatus laptop_status;
 };
-
-constexpr uint16_t AC_GCS_status_size = sizeof(espACStatus) + sizeof(espGCSStatus) + sizeof(laptopStatus); // yeah we are defining/initializing this here, but i just use this everywhere, and i dont wanna make a dedicated cpp file
-constexpr uint16_t teensy_AC_status_size = sizeof(teensyStatus) + sizeof(espACStatus);

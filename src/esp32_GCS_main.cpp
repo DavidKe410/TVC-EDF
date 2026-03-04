@@ -1,20 +1,12 @@
 #include <Arduino.h>
+#include "common/config.h"
+#include "common/globals.h"
+#include "common/data_structs.h"
 #include <esp_now.h>
 #include <WiFi.h>
-#include "data_structs.h"
-#include "config.h"
 
 // Receiver (onboard ESP) MAC Address
 uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
-
-PackedDataStruct g_packed_data;
-CommandStruct g_command;
-StatusStruct g_system_status;
-
-esp_now_peer_info_t peerInfo;
-esp_err_t result = ESP_OK;
-
-uint32_t last_laptop_status = 0;
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
@@ -27,7 +19,7 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     if (packetID == TelemetryPk && len == sizeof(PackedDataStruct)) {
         memcpy(&g_packed_data, incomingData, len);
         if (g_system_status.laptop_status.laptop_state > -1) {
-            if ((size_t)Serial.availableForWrite() >= (sizeof(PackedDataStruct) + availWriteMargin)) {
+            if ((size_t)Serial.availableForWrite() >= (sizeof(PackedDataStruct) + config::AVAIL_WRITE_MARGIN)) {
                 serialTransfer.txObj(g_packed_data);
                 serialTransfer.sendData(sizeof(PackedDataStruct), TelemetryPk);
             } else {
@@ -50,9 +42,9 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
 void setup() {
     // Init Serial Monitor
-    Serial.begin(serialT_Baud);
+    Serial.begin(config::SERIAL_T_BAUD);
     
-    serialTransfer.begin(Serial, true, Serial, serialT_timeout);
+    serialTransfer.begin(Serial, true, Serial, config::SERIAL_T_TIMEOUT_MS);
 
     // Set device as a Wi-Fi Station
     WiFi.mode(WIFI_STA);
@@ -61,14 +53,13 @@ void setup() {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
-    esp_wifi_config_espnow_rate(WIFI_IF_STA, ESPNOW_RATE); // lower to increase range in the future
-    // Once ESPNow is successfully Init, we will register for Send CB to
-    // get the status of Transmitted packet
+    esp_wifi_config_espnow_rate(WIFI_IF_STA, config::ESP_PHY_RATE); // lower to increase range in the future
+    // Once ESPNow is successfully Init, we will register for Send CB to get the status of Transmitted packet
     esp_now_register_send_cb(OnDataSent);
     
     // Register peer
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-    peerInfo.channel = CHANNEL;  
+    peerInfo.channel = config::CHANNEL;  
     peerInfo.encrypt = false;
     
     // Add peer        
@@ -94,28 +85,24 @@ void loop() {
                 break;
             case StatusPk:
                 serialTransfer.rxObj(g_system_status.laptop_status);
-                last_laptop_status = millis();
+                last_status_rx2 = millis();
                 break;
         }
-        // Serial.print("\r\nLast Packet Send Status:\t");
-        // Serial.println(result == ESP_OK ? "Success" : "Fail");
-        //count++;
     }
 
-    if ((millis()-last_status_rx) >= heartbeat_timeout) {
+    uint32_t current_time = millis(); // just gonna use this for the next couple
+
+    if ((current_time-last_status_rx) >= config::HEARTBEAT_TIMEOUT_MS) {
         g_system_status.teensy_status.ac_state = -2; // mark as disconnected
         g_system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
     }
 
-    if ((millis()-last_laptop_status) >= heartbeat_timeout) {
+    if ((current_time-last_status_rx2) >= config::HEARTBEAT_TIMEOUT_MS) {
         g_system_status.laptop_status.laptop_state = -2;
     }
-
-    // Set values to send
-    uint32_t current_time = millis();
     
-    if (current_time - last_status_ms >= STATUS_RATE) {
-        if ((size_t)Serial.availableForWrite() >= (teensy_AC_status_size + sizeof(espGCSStatus) + availWriteMargin)) {
+    if (current_time - last_status_ms >= config::STATUS_INTERVAL_MS) {
+        if ((size_t)Serial.availableForWrite() >= (teensy_AC_status_size + sizeof(espGCSStatus) + config::AVAIL_WRITE_MARGIN)) {
             serialTransfer.txObj(g_system_status.teensy_status);
             serialTransfer.txObj(g_system_status.esp_ac_status, sizeof(g_system_status.teensy_status));
             serialTransfer.txObj(g_system_status.esp_gcs_status, teensy_AC_status_size); // place gcs status right after ac status in the buffer, thats the index not the size of msg
@@ -128,10 +115,10 @@ void loop() {
             result = esp_now_send(broadcastAddress, (uint8_t *) &g_system_status.esp_gcs_status, (sizeof(espGCSStatus)+sizeof(laptopStatus)));
         }
 
-        if (current_time - last_status_ms > 5 * STATUS_RATE) {
+        if (current_time - last_status_ms > 5 * config::STATUS_INTERVAL_MS) {
             last_status_ms = current_time; // reset if behind
         } else {
-            last_status_ms += STATUS_RATE;
+            last_status_ms += config::STATUS_INTERVAL_MS;
         }
     }
 }

@@ -54,7 +54,6 @@ void readISM330(IMUData &data) {
         data.temp = ism330.getTemp()/256.0 + 25; // Convert to °C
         data.accel_time = millis();
         data.new_accel = true;
-        //loopCount++;
     }else{
         data.new_accel = false; // Old data
     }
@@ -76,7 +75,6 @@ void readBNO085(IMUData &data) {
                 data.j = sensorValue.un.rotationVector.j;
                 data.k = sensorValue.un.rotationVector.k;
                 data.orien_time = millis();
-                loopCount++; // for the main loop hz testing, can remove later
                 break;
         }
     } else {

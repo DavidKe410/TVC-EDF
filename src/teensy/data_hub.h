@@ -1,16 +1,23 @@
 #pragma once
-#include "config.h"
-#include "data_structs.h"
-
+#include "common/config.h"
+#include "common/globals.h"
+#include "common/data_structs.h"
+#include "SdFat.h"
+#include "RingBuf.h"
 
 // Struct to consolidate all data
-extern AllData g_all_data;
-// Packed Data Struct
-extern PackedDataStruct g_packed_data;
-// Command Struct from GCS
-extern CommandStruct g_command;
-// Status Struct for both ac and gcs
-extern StatusStruct g_system_status;
+extern AllData g_all_data; 
+
+// SD Card Objects
+extern size_t maxUsed;
+extern SdFs sd;
+extern FsFile file;
+extern RingBuf<FsFile, config::LOG_BUF_CAPACITY> log_rb;
+
+// Buffers
+extern uint32_t last_tele_ms;
+extern uint8_t tx_buffer[config::TX_CAPACITY];
+extern uint8_t rx_buffer[config::RX_CAPACITY];
 
 void setupSD(StatusStruct &system_status);
 void cleanupSD();

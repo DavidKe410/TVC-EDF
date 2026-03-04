@@ -1,18 +1,21 @@
 #include "data_hub.h"
 
-// Struct to consolidate all data
-AllData g_all_data; 
-// Packed Data Struct
-PackedDataStruct g_packed_data;
-// Command Struct from GCS
-CommandStruct g_command;
-// Status Struct for both ac and gcs
-StatusStruct g_system_status;
-
-
+// For testing
 int countweirdrate = 0;
 int count = 0;
 uint32_t previous_time = millis();
+// -------------
+
+AllData g_all_data;
+
+size_t maxUsed = 0;
+SdFs sd;
+FsFile file;
+RingBuf<FsFile, config::LOG_BUF_CAPACITY> log_rb;
+
+uint32_t last_tele_ms = 0;
+uint8_t tx_buffer[config::TX_CAPACITY];
+uint8_t rx_buffer[config::RX_CAPACITY];
 
 void processCMD(CommandStruct &command, StatusStruct &system_status) { // have a list of processed commands so we don't process multiple times?
     if (command.type_cmd == 1){ // all of this kinda like a placeholder, simple ack
@@ -46,7 +49,7 @@ void receiveData(CommandStruct &command, StatusStruct &system_status){ //This is
                 break;
         }
     }
-    if ((millis()-last_status_rx) >= heartbeat_timeout) {
+    if ((millis()-last_status_rx) >= config::HEARTBEAT_TIMEOUT_MS) {
         system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
         system_status.esp_gcs_status.esp_gcs_state = -2; // mark as disconnected
         system_status.laptop_status.laptop_state = -2;
@@ -72,10 +75,9 @@ void packData(AllData &data, PackedDataStruct &packed) {
 }
 
 void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
-
     // Rate limit telemetry to TELE_RATE
-    if ((packed_data.overall_time - last_tele_ms >= TELE_RATE) && (system_status.esp_ac_status.esp_ac_state > -1)) { // Using packed_data.overall_time as millis()
-        if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + availWriteMargin)) {
+    if ((packed_data.overall_time - last_tele_ms >= config::TELE_INTERVAL_MS) && (system_status.esp_ac_status.esp_ac_state > -1)) { // Using packed_data.overall_time as millis()
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + config::AVAIL_WRITE_MARGIN)) {
             serialTransfer.txObj(packed_data);
             serialTransfer.sendData(sizeof(packed_data), TelemetryPk);
         } else {
@@ -83,15 +85,15 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
         }
 
         // Prevent drift timers by resetting if we're too far behind, otherwise just increment by the rate.
-        if (packed_data.overall_time - last_tele_ms > 5 * TELE_RATE) {
+        if (packed_data.overall_time - last_tele_ms > 5 * config::TELE_INTERVAL_MS) {
             last_tele_ms = packed_data.overall_time; // reset if behind
         }else{
-            last_tele_ms += TELE_RATE;
+            last_tele_ms += config::TELE_INTERVAL_MS;
         }
     }
 
-    if (packed_data.overall_time - last_status_ms >= STATUS_RATE) {
-        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + availWriteMargin)) {
+    if (packed_data.overall_time - last_status_ms >= config::STATUS_INTERVAL_MS) {
+        if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + config::AVAIL_WRITE_MARGIN)) {
             system_status.teensy_status.overall_time = packed_data.overall_time; 
             serialTransfer.txObj(system_status.teensy_status);
             serialTransfer.sendData(sizeof(system_status.teensy_status), StatusPk); // status packet id = 2
@@ -99,10 +101,10 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
             Serial.println("Dropped a system status packet");
         }
 
-        if (packed_data.overall_time - last_status_ms > 5 * STATUS_RATE) {
+        if (packed_data.overall_time - last_status_ms > 5 * config::STATUS_INTERVAL_MS) {
             last_status_ms = packed_data.overall_time; // reset if behind
         }else{
-            last_status_ms += STATUS_RATE;
+            last_status_ms += config::STATUS_INTERVAL_MS;
         }
         Serial.println(F("--- Teensy Status ---"));
         Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
@@ -122,7 +124,7 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
 void logData(PackedDataStruct &packed_data) {
     // Amount of data in ringBuf.
     size_t n = log_rb.bytesUsed();
-    if ((n + file.curPosition()) > (LOG_FILE_SIZE - 20)) {
+    if ((n + file.curPosition()) > (config::FILE_SIZE - 20)) {
         Serial.println("File full - quitting.");
         return;
     }
@@ -145,7 +147,7 @@ void logData(PackedDataStruct &packed_data) {
         return;
       }
     // Flush RB data into file object. Force SD to potentially work more inefficiently but at least gets data over
-    if (n > (LOG_BUF_CAPACITY * 0.75)) {
+    if (n > (config::LOG_BUF_CAPACITY * 0.75)) {
         log_rb.sync(); 
     }
 }
@@ -162,7 +164,7 @@ void cleanupSD(){
 
 void setupSD(StatusStruct &system_status){
     // Initialize the SD.
-    if (!sd.begin(SD_CONFIG)) {
+    if (!sd.begin(SdioConfig(FIFO_SDIO))) {
       sd.initErrorHalt(&Serial);
     }
 
@@ -187,7 +189,7 @@ void setupSD(StatusStruct &system_status){
 
     // File must be pre-allocated to avoid huge
     // delays searching for free clusters.
-    if (!file.preAllocate(LOG_FILE_SIZE)) {
+    if (!file.preAllocate(config::FILE_SIZE)) {
       Serial.println("preAllocate failed\n");
       file.close();
       return;
