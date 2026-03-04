@@ -8,8 +8,8 @@
 uint8_t broadcastAddress[] = {0x40, 0x4C, 0xCA, 0x3C, 0xFD, 0x5C};
 
 PackedDataStruct g_packed_data;
-CommandStruct g_command_data;
-statusStruct g_system_status;
+CommandStruct g_command;
+StatusStruct g_system_status;
 
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
@@ -19,28 +19,17 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
     result = ESP_OK; // clearing buffer by 1 i geuss, so potentially be able to send again
 }
 
-int countweirdrate = 0;
-int count = 0;
-uint32_t previous_time = millis();
-
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
     if (packetID == TelemetryPk && len == sizeof(PackedDataStruct)) {
         memcpy(&g_packed_data, incomingData, len);
-        count++;
-        if (count == 400) {
-            uint32_t current_time = millis();
-            float rate = 1000/((current_time - previous_time)/400.0);
-            if (rate < 95 || rate > 105) {
-                countweirdrate++;
-            }
-            Serial.println("Received 400 packets, average rate: " + String(rate, 4) + " packets/s");
-            previous_time = current_time;
-            count = 0;
+        if ((size_t)Serial.availableForWrite() >= (sizeof(PackedDataStruct) + availWriteMargin)) {
+            serialTransfer.txObj(g_packed_data);
+            serialTransfer.sendData(sizeof(PackedDataStruct), TelemetryPk);
+        } else {
+            Serial.println("Dropped a telemetry packet, GCS to Laptop");
         }
-    // } else if (packetID == CommandPk && len == sizeof(CommandStruct)) { // alright there shouldn't be any reason we get a command, delete later
-    //     memcpy(&tx_command_data, incomingData, len);
     } else if (packetID == StatusPk && len == teensy_AC_status_size) {
         memcpy(&g_system_status.teensy_status, incomingData, len);
         last_status_rx = millis();
@@ -57,8 +46,10 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
 void setup() {
     // Init Serial Monitor
-    Serial.begin(115200);
+    Serial.begin(serialT_Baud);
     
+    serialTransfer.begin(Serial, true, Serial, serialT_timeout);
+
     // Set device as a Wi-Fi Station
     WiFi.mode(WIFI_STA);
     // Init ESP-NOW
@@ -89,6 +80,24 @@ void setup() {
 }
 
 void loop() {
+    if (serialTransfer.available()) { // getting held up by stale packet here
+        switch (serialTransfer.currentPacketID()){
+            case CommandPk:
+                serialTransfer.rxObj(g_command);
+                if (result == ESP_OK) {
+                    result = esp_now_send(broadcastAddress, (uint8_t *) &g_command, sizeof(CommandStruct));
+                }
+                break;
+            case StatusPk:
+                serialTransfer.rxObj(g_system_status.laptop_status);
+                last_status_rx = millis();
+                break;
+        }
+        // Serial.print("\r\nLast Packet Send Status:\t");
+        // Serial.println(result == ESP_OK ? "Success" : "Fail");
+        //count++;
+    }
+
     if (millis()-last_status_rx >= heartbeat_timeout) {
         g_system_status.teensy_status.ac_state = -2; // mark as disconnected
         g_system_status.esp_ac_status.esp_ac_state = -2; // mark as disconnected
@@ -96,21 +105,10 @@ void loop() {
 
     // Set values to send
     uint32_t current_time = millis();
-    if (current_time - last_cmd_ms >= COMMAND_RATE) {
-        if (result == ESP_OK) {
-            result = esp_now_send(broadcastAddress, (uint8_t *) &g_command_data, sizeof(g_command_data));
-        }
-
-        if (current_time - last_cmd_ms > 5 * COMMAND_RATE) {
-            last_cmd_ms = current_time; // reset if behind
-        } else {
-            last_cmd_ms += COMMAND_RATE;
-        }
-    }
-    //Serial.println("current_time: " + String(current_time) + ", last_status_ms: " + String(last_status_ms));
+    
     if (current_time - last_status_ms >= STATUS_RATE) {
         if (result == ESP_OK) {
-            result = esp_now_send(broadcastAddress, (uint8_t *) &g_system_status.esp_gcs_status, sizeof(g_system_status.esp_gcs_status));
+            result = esp_now_send(broadcastAddress, (uint8_t *) &g_system_status.esp_gcs_status, (sizeof(espGCSStatus)+sizeof(laptopStatus)));
         }
 
         if (current_time - last_status_ms > 5 * STATUS_RATE) {
@@ -118,15 +116,5 @@ void loop() {
         } else {
             last_status_ms += STATUS_RATE;
         }
-        Serial.println(F("GCS--- Teensy Status ---"));
-        Serial.print(F("Time (ms):   ")); Serial.println(g_system_status.teensy_status.overall_time);
-        Serial.print(F("AC State:    ")); Serial.println(g_system_status.teensy_status.ac_state);
-        Serial.print(F("BNO State:   ")); Serial.println(g_system_status.teensy_status.bno_state);
-        Serial.print(F("ISM State:   ")); Serial.println(g_system_status.teensy_status.ism_state);
-        Serial.print(F("SD State:    ")); Serial.println(g_system_status.teensy_status.sd_state);
-        Serial.print(F("ESP AC State:  ")); Serial.println(g_system_status.esp_ac_status.esp_ac_state);
-        Serial.print(F("ESP GCS State: ")); Serial.println(g_system_status.esp_gcs_status.esp_gcs_state);
-        Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
     }
-
 }

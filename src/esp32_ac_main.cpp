@@ -7,8 +7,8 @@
 
 HardwareSerial HWSerial1(0);
 PackedDataStruct g_packed_data;
-CommandStruct g_command_data;
-statusStruct g_system_status;
+CommandStruct g_command;
+StatusStruct g_system_status;
 
 esp_now_peer_info_t peerInfo;
 esp_err_t result = ESP_OK;
@@ -28,16 +28,16 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     uint8_t packetID = incomingData[0]; // first byte is packet type
     if (packetID == CommandPk && len == sizeof(CommandStruct)) {
-        memcpy(&g_command_data, incomingData, len); // Potentially a way of directly using incomingData w/o memcpy, but this works for now
+        memcpy(&g_command, incomingData, len); // Potentially a way of directly using incomingData w/o memcpy, but this works for now
         if (g_system_status.teensy_status.ac_state > -1) {
             if ((size_t)HWSerial1.availableForWrite() >= (len + availWriteMargin)) {
-                serialTransfer.txObj(g_command_data);
+                serialTransfer.txObj(g_command);
                 serialTransfer.sendData(len, CommandPk);
             } else {
                 Serial.println("Dropped a cmd packet, AC to Teensy");
             }
         }
-    }else if (packetID == StatusPk && len == sizeof(g_system_status.esp_gcs_status)) {
+    }else if (packetID == StatusPk && len == (sizeof(espGCSStatus) + sizeof(laptopStatus))) {
         memcpy(&g_system_status.esp_gcs_status, incomingData, len);
         last_GCS_status = millis();
     } else {
@@ -96,7 +96,7 @@ int count = 0;
 uint32_t previous_time = millis();
 
 void loop() {
-    if (serialTransfer.available()) {// getting held up by stale packet here
+    if (serialTransfer.available()) {
         switch (serialTransfer.currentPacketID()){
             case TelemetryPk:
                 serialTransfer.rxObj(g_packed_data);
@@ -137,12 +137,13 @@ void loop() {
         if ((size_t)HWSerial1.availableForWrite() >= (AC_GCS_status_size + availWriteMargin)) {
             serialTransfer.txObj(g_system_status.esp_ac_status);
             serialTransfer.txObj(g_system_status.esp_gcs_status, sizeof(g_system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg
+            serialTransfer.txObj(g_system_status.laptop_status, sizeof(g_system_status.esp_ac_status) + sizeof(g_system_status.esp_gcs_status));
             serialTransfer.sendData(AC_GCS_status_size, StatusPk);
         } else {
             Serial.println("Dropped a system status packet, AC to Teensy");
         }
         if (result == ESP_OK) {
-            esp_now_send(broadcastAddress, (uint8_t *) &system_status, teensy_AC_status_size); // Just need to send Teensy and AC since GCS has its own truth
+            esp_now_send(broadcastAddress, (uint8_t *) &g_system_status, teensy_AC_status_size); // Just need to send Teensy and AC since GCS has its own truth
         }
         if (current_status_time - last_status_ms > 5 * STATUS_RATE) {
             last_status_ms = current_status_time; // reset if behind
@@ -150,14 +151,14 @@ void loop() {
             last_status_ms += STATUS_RATE;
         }
         Serial.println(F("AC--- Teensy Status ---"));
-        Serial.print(F("Time (ms):   ")); Serial.println(system_status.teensy_status.overall_time);
-        Serial.print(F("AC State:    ")); Serial.println(system_status.teensy_status.ac_state);
-        Serial.print(F("BNO State:   ")); Serial.println(system_status.teensy_status.bno_state);
-        Serial.print(F("ISM State:   ")); Serial.println(system_status.teensy_status.ism_state);
-        Serial.print(F("SD State:    ")); Serial.println(system_status.teensy_status.sd_state);
+        Serial.print(F("Time (ms):   ")); Serial.println(g_system_status.teensy_status.overall_time);
+        Serial.print(F("AC State:    ")); Serial.println(g_system_status.teensy_status.ac_state);
+        Serial.print(F("BNO State:   ")); Serial.println(g_system_status.teensy_status.bno_state);
+        Serial.print(F("ISM State:   ")); Serial.println(g_system_status.teensy_status.ism_state);
+        Serial.print(F("SD State:    ")); Serial.println(g_system_status.teensy_status.sd_state);
         Serial.println(F("---------------------"));
-        Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
-        Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
+        Serial.print(F("ESP AC State:  ")); Serial.println(g_system_status.esp_ac_status.esp_ac_state);
+        Serial.print(F("ESP GCS State: ")); Serial.println(g_system_status.esp_gcs_status.esp_gcs_state);
         Serial.print(F("Werid tele rate:  ")); Serial.println(countweirdrate);
     }
 }

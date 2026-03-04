@@ -51,8 +51,8 @@ struct __attribute__((packed)) PackedDataStruct {
 
 struct __attribute__((packed)) CommandStruct {
     uint8_t packet_type = CommandPk;
-    uint8_t typeCmd = 0; // maybe redundant with the manual control flag, could specify for an ack back
-    int8_t state = 1; // 0 idle, 1 auto, 2 manual
+    uint8_t type_cmd = 0; // maybe redundant with the manual control flag, could specify for an ack back
+    int8_t state = 0; // 0 idle, 1 auto, 2 manual
     uint32_t overall_time = millis();
     uint16_t servo1 = random(1000,2000);
     uint16_t servo2 = random(1000,2000);
@@ -82,12 +82,17 @@ struct __attribute__((packed)) espGCSStatus {
     int8_t esp_gcs_state = -1;
 };
 
+struct __attribute__((packed)) laptopStatus {
+    uint8_t packet_type = StatusPk;
+    int8_t laptop_state = -1;
+};
 
-struct __attribute__((packed)) statusStruct {
+struct __attribute__((packed)) StatusStruct {
     teensyStatus teensy_status;
     espACStatus esp_ac_status;
     espGCSStatus esp_gcs_status;
+    laptopStatus laptop_status;
 };
 
-constexpr uint16_t AC_GCS_status_size = sizeof(espACStatus) + sizeof(espGCSStatus); // yeah we are defining/initializing this here, but i just use this everywhere, and i dont wanna make a dedicated cpp file
+constexpr uint16_t AC_GCS_status_size = sizeof(espACStatus) + sizeof(espGCSStatus) + sizeof(laptopStatus); // yeah we are defining/initializing this here, but i just use this everywhere, and i dont wanna make a dedicated cpp file
 constexpr uint16_t teensy_AC_status_size = sizeof(teensyStatus) + sizeof(espACStatus);
