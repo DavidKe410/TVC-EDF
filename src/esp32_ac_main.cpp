@@ -4,6 +4,7 @@
 #include "common/data_structs.h"
 #include "WiFi.h"
 #include <esp_now.h>
+#include <esp_wifi.h>
 #include <HardwareSerial.h>
 
 HardwareSerial HWSerial1(0);
@@ -51,6 +52,9 @@ void setup() {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
+    
+    esp_wifi_set_ps(WIFI_PS_NONE);
+    esp_wifi_set_max_tx_power(80); // default but couldn't hurt to establish, 80 should be max
     esp_wifi_config_espnow_rate(WIFI_IF_STA, config::ESP_PHY_RATE); // lower to increase range in the future
 
     HWSerial1.setRxBufferSize(config::RX_CAPACITY); // just for more head room
@@ -108,6 +112,7 @@ void loop() {
     }
 
     if (current_time - last_status_ms >= config::STATUS_INTERVAL_MS) { // Sending GCS and AC status over to Teensy through HWSerial + SerialTransfer
+        g_system_status.esp_ac_status.temperature = temperatureRead();
         if ((size_t)HWSerial1.availableForWrite() >= (AC_GCS_status_size + config::AVAIL_WRITE_MARGIN)) {
             serialTransfer.txObj(g_system_status.esp_ac_status);
             serialTransfer.txObj(g_system_status.esp_gcs_status, sizeof(g_system_status.esp_ac_status)); // place gcs status right after ac status in the buffer, thats the index not the size of msg

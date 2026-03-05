@@ -64,18 +64,22 @@ class espACStatus(ctypes.Structure):
     _fields_ = [
         ("packet_type", ctypes.c_uint8),
         ("esp_ac_state", ctypes.c_int8),
+        ("temperature", ctypes.c_int8),
+        ("RSSI", ctypes.c_int8),
     ]
-    def __init__(self, packet_type=PacketType.StatusPk, esp_ac_state=-1):
-        super().__init__(packet_type=packet_type, esp_ac_state=esp_ac_state)
+    def __init__(self, packet_type=PacketType.StatusPk, esp_ac_state=-1, RSSI=-100):
+        super().__init__(packet_type=packet_type, esp_ac_state=esp_ac_state, RSSI=RSSI)
 
 class espGCSStatus(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
         ("packet_type", ctypes.c_uint8),
         ("esp_gcs_state", ctypes.c_int8),
+        ("temperature", ctypes.c_int8),
+        ("RSSI", ctypes.c_int8), # RSSI doesn't work bu maybe in some future updates, we'll be able to implement
     ]
-    def __init__(self, packet_type=PacketType.StatusPk, esp_gcs_state=-1):
-        super().__init__(packet_type=packet_type, esp_gcs_state=esp_gcs_state)
+    def __init__(self, packet_type=PacketType.StatusPk, esp_gcs_state=-1, RSSI=-100):
+        super().__init__(packet_type=packet_type, esp_gcs_state=esp_gcs_state, RSSI=RSSI)
 
 class laptopStatus(ctypes.Structure):
     _pack_ = 1

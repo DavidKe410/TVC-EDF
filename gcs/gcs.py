@@ -83,7 +83,8 @@ if __name__ == '__main__':
 
             if (current_time - last_status_ms >= STATUS_RATE):
                 print("sending status")
-
+                print(g_system_status.esp_gcs_status.RSSI)
+                print(g_system_status.esp_ac_status.RSSI)
                 serialTransfer.tx_struct_obj(val_bytes=bytes(g_system_status.laptop_status))
                 serialTransfer.send(ctypes.sizeof(g_system_status.laptop_status), packet_id=2)
 

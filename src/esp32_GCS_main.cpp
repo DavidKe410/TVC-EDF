@@ -3,6 +3,7 @@
 #include "common/globals.h"
 #include "common/data_structs.h"
 #include <esp_now.h>
+#include <esp_wifi.h>
 #include <WiFi.h>
 
 // Receiver (onboard ESP) MAC Address
@@ -48,12 +49,17 @@ void setup() {
 
     // Set device as a Wi-Fi Station
     WiFi.mode(WIFI_STA);
+
     // Init ESP-NOW
     if (esp_now_init() != ESP_OK) {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
+
+    esp_wifi_set_ps(WIFI_PS_NONE);
+    esp_wifi_set_max_tx_power(80); // default but couldn't hurt to establish, 80 should be max
     esp_wifi_config_espnow_rate(WIFI_IF_STA, config::ESP_PHY_RATE); // lower to increase range in the future
+    
     // Once ESPNow is successfully Init, we will register for Send CB to get the status of Transmitted packet
     esp_now_register_send_cb(OnDataSent);
     
@@ -102,6 +108,8 @@ void loop() {
     }
     
     if (current_time - last_status_ms >= config::STATUS_INTERVAL_MS) {
+        g_system_status.esp_gcs_status.temperature = temperatureRead();
+        g_system_status.esp_gcs_status.RSSI = WiFi.RSSI();
         if ((size_t)Serial.availableForWrite() >= (teensy_AC_status_size + sizeof(espGCSStatus) + config::AVAIL_WRITE_MARGIN)) {
             serialTransfer.txObj(g_system_status.teensy_status);
             serialTransfer.txObj(g_system_status.esp_ac_status, sizeof(g_system_status.teensy_status));

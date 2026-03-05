@@ -79,11 +79,15 @@ struct __attribute__((packed)) teensyStatus {
 struct __attribute__((packed)) espACStatus { //for future proofing atp but currently just holds the state of the AC
     uint8_t packet_type = StatusPk;
     int8_t esp_ac_state = -1;
+    int8_t temperature = -1;
+    int8_t RSSI = -100;
 };
 
 struct __attribute__((packed)) espGCSStatus {
     uint8_t packet_type = StatusPk;
     int8_t esp_gcs_state = -1;
+    int8_t temperature = -1;
+    int8_t RSSI = -100;
 };
 
 struct __attribute__((packed)) laptopStatus {
