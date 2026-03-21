@@ -38,7 +38,7 @@ class LoggerThread(QThread):
                 self.file.close()
                 self.file = None
 
-            if not self.queue.empty():
+            if not self.queue.empty() and self.file is not None:
                 packet_id, data = self.queue.get()
                 if self.file: # Only write if we have an active file
                     self.file.write(packet_id.to_bytes(1, 'little'))

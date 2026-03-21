@@ -12,11 +12,13 @@ class CommThread(QThread):
     status_received = pyqtSignal(object)
     connection_error = pyqtSignal(str)
 
-    def __init__(self, port='COM7', logger=None, parent=None):
+    def __init__(self, port='COM7', logger=None, serialTransfer=None, parent=None):
         super().__init__(parent)
+        self.running = True
+        self.serial_enabled = False
         self.port = port
-        self.running = False
         self.logger = logger
+        self.serialTransfer = serialTransfer
         
         # Instantiate structures locally
         self.system_status = ds.StatusStruct()
@@ -33,32 +35,42 @@ class CommThread(QThread):
         self.last_status_ms = 0
         self.last_espGCS_ms = 0
 
-        self.serialTransfer = txfer.SerialTransfer(self.port)
-
     def run(self):
-        """This replaces your while True loop and runs in the background."""
-        self.running = True
-        try:
-            self.serialTransfer.open()
-            time.sleep(2) # allow Arduino to reset
-            
-            while self.running:
-                self.system_status.laptop_status.laptop_state = 1
-                self.receive_data()
-                self.send_data()
-                self.heartbeat_check()
+        while self.running:
+            try:
+                if (self.serial_enabled and self.serialTransfer is None):
+                    self.connect_serial()
+                elif (self.serial_enabled and self.serialTransfer is not None):
+                    self.system_status.laptop_status.laptop_state = 1
+                    self.receive_data()
+                    self.send_data()
+                    self.heartbeat_check()
+                elif (not self.serial_enabled and self.serialTransfer is not None):
+                    self.disconnect_serial()
                 
-                # Small sleep to yield to other threads, adjust as needed for 100Hz
-                time.sleep(0.001) 
-                
-        except Exception as e:
-            self.connection_error.emit(str(e))
-        finally:
-            self.serialTransfer.close()
+                time.sleep(0.001)  # Small sleep to yield to other threads, adjust as needed for 100Hz
+                    
+            except Exception as e:
+                self.disconnect_serial()
+                self.connection_error.emit(str(e))
+
+
 
     def stop(self):
         self.running = False
         self.wait() # Wait for thread to safely exit
+
+    def connect_serial(self):
+        self.serialTransfer = txfer.SerialTransfer(self.port)
+        self.serialTransfer.open()
+        time.sleep(1.5)
+
+    def disconnect_serial(self):
+        print(f"Serial connection disconnected.")
+        self.serialTransfer.close()
+        self.serialTransfer = None
+        self.serial_enabled = False
+        self.system_status.laptop_status.laptop_state = -2
 
     def current_ms(self):
         return int(time.perf_counter() * 1000)

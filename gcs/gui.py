@@ -18,12 +18,17 @@ class GCSWindow(QMainWindow):
         self.lbl_telemetry = QLabel("Waiting for telemetry...")
         self.lbl_status = QLabel("Status: Disconnected")
         
+        self.serial_btn_toggle = QPushButton("Press to connect serial.")
+        self.serial_btn_toggle.setCheckable(True)
+        self.serial_btn_toggle.setChecked(True)
+        self.serial_btn_toggle.clicked.connect(self.on_serial_toggle)
         
         self.log_btn_toggle = QPushButton("Press to start logging.")
         self.log_btn_toggle.setCheckable(True)
         self.log_btn_toggle.setChecked(True)
         self.log_btn_toggle.clicked.connect(self.on_log_toggle)
         
+        layout.addWidget(self.serial_btn_toggle)
         layout.addWidget(self.log_btn_toggle)
         layout.addWidget(self.lbl_status)
         layout.addWidget(self.lbl_telemetry)
@@ -35,6 +40,7 @@ class GCSWindow(QMainWindow):
         # 3. Connect Backend Signals to GUI Slots
         self.comms_thread.telemetry_received.connect(self.update_telemetry)
         self.comms_thread.status_received.connect(self.update_status)
+        self.comms_thread.connection_error.connect(self.update_serial_conn)
         
         # 4. Start the background loops
         self.log_thread.start()
@@ -53,13 +59,31 @@ class GCSWindow(QMainWindow):
         text = f"Teensy State: {status.teensy_status.ac_state} | ESP GCS Temp: {status.esp_gcs_status.temperature}"
         self.lbl_status.setText(text)
 
-    def on_log_toggle(self):
+    def update_serial_conn(self, error): # CHANGE AWAY FROM checking if CHECKED? into DIRECT INDICATORS?
+        print(f"Serial connection lost: {error}")
+        if self.serial_btn_toggle.isChecked():
+            self.serial_btn_toggle.click()
+        if self.log_btn_toggle.isChecked():
+            self.log_btn_toggle.click()
+
+    def on_log_toggle(self):# CHANGE AWAY FROM checking if CHECKED? into DIRECT INDICATORS?
         if self.log_btn_toggle.isChecked(): # start checked, so when we actually press the button, it toggles it off and starts the log
             self.log_thread.logging_enabled = False
             self.log_btn_toggle.setText("Press to start logging.")
-        else:
+        elif not self.log_btn_toggle.isChecked() and self.comms_thread.serial_enabled == True:
             self.log_thread.logging_enabled = True
             self.log_btn_toggle.setText("Press to stop logging.")
+        else:
+            self.log_btn_toggle.setText("Serial not connected, please try again.")
+            self.log_btn_toggle.setChecked(True)
+
+    def on_serial_toggle(self):
+        if self.serial_btn_toggle.isChecked():
+            self.comms_thread.serial_enabled = False
+            self.serial_btn_toggle.setText("Press to connect serial.")
+        else:
+            self.comms_thread.serial_enabled = True
+            self.serial_btn_toggle.setText("Press to disconnect serial.")
     
     def closeEvent(self, event):
         if self.comms_thread:
