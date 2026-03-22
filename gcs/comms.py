@@ -24,6 +24,11 @@ class CommThread(QThread):
         self.system_status = ds.StatusStruct()
         self.packed_data = ds.PackedDataStruct()
         self.command = ds.CommandStruct()
+        # individually initialize sub-structs to trigger their __init__ defaults
+        self.system_status.teensy_status = ds.teensyStatus()
+        self.system_status.esp_ac_status = ds.espACStatus()
+        self.system_status.esp_gcs_status = ds.espGCSStatus()
+        self.system_status.laptop_status = ds.laptopStatus()
 
         # Timing constants
         self.CMD_INTERVAL_MS = 10

@@ -13,7 +13,7 @@ HEADERS = [
 
 STRUCT_SIZE = struct.calcsize(STRUCT_FORMAT)
 
-currentfolder = 'C:/Users/david/Downloads/Personal/Projects/Github/TVC-EDF/TVC_EDF/src/datalogs/'
+currentfolder = 'C:/Users/david/Downloads/Personal/Projects/Github/TVC-EDF/gcs/datalogs/Aircraft/'
 bin_path = currentfolder + 'FLIGHT1.bin'  # Update this path if your file is in a different location
 csv_path = currentfolder + 'flight_telemetry1.csv'  # Desired output CSV file name
 

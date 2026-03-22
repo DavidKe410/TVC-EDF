@@ -59,6 +59,7 @@ class GCSWindow(QMainWindow):
         text = f"Teensy State: {status.teensy_status.ac_state} | ESP GCS Temp: {status.esp_gcs_status.temperature}"
         self.lbl_status.setText(text)
 
+    @pyqtSlot(str)
     def update_serial_conn(self, error): # the enable flags should only ever be changed here, any other setters in the threads themselvs should jsut be reconfirming
         print(f"Serial connection lost: {error}")
         if self.comms_thread.serial_enabled == True:
