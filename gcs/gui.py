@@ -18,14 +18,14 @@ class GCSWindow(QMainWindow):
         self.lbl_telemetry = QLabel("Waiting for telemetry...")
         self.lbl_status = QLabel("Status: Disconnected")
         
-        self.serial_btn_toggle = QPushButton("Press to connect serial.")
+        self.serial_btn_toggle = QPushButton("Testing \n Press to connect serial.")
         self.serial_btn_toggle.setCheckable(True)
-        self.serial_btn_toggle.setChecked(True)
+        #self.serial_btn_toggle.setChecked(True)
         self.serial_btn_toggle.clicked.connect(self.on_serial_toggle)
         
         self.log_btn_toggle = QPushButton("Press to start logging.")
         self.log_btn_toggle.setCheckable(True)
-        self.log_btn_toggle.setChecked(True)
+        #self.log_btn_toggle.setChecked(True)
         self.log_btn_toggle.clicked.connect(self.on_log_toggle)
         
         layout.addWidget(self.serial_btn_toggle)
@@ -59,30 +59,35 @@ class GCSWindow(QMainWindow):
         text = f"Teensy State: {status.teensy_status.ac_state} | ESP GCS Temp: {status.esp_gcs_status.temperature}"
         self.lbl_status.setText(text)
 
-    def update_serial_conn(self, error): # CHANGE AWAY FROM checking if CHECKED? into DIRECT INDICATORS?
+    def update_serial_conn(self, error): # the enable flags should only ever be changed here, any other setters in the threads themselvs should jsut be reconfirming
         print(f"Serial connection lost: {error}")
-        if self.serial_btn_toggle.isChecked():
-            self.serial_btn_toggle.click()
-        if self.log_btn_toggle.isChecked():
-            self.log_btn_toggle.click()
+        if self.comms_thread.serial_enabled == True:
+            self.serial_btn_toggle.click() # now the serial_enabled is just reconfirmed on this end and button text back to correct msg
+            self.serial_btn_toggle.setText("Serial Connection Lost: Device not found. Please try again.")
+        if self.log_thread.logging_enabled == True:
+            self.log_btn_toggle.click() # same as abv
+            self.log_btn_toggle.setText("Serial disconnected. Please try again.")
 
-    def on_log_toggle(self):# CHANGE AWAY FROM checking if CHECKED? into DIRECT INDICATORS?
-        if self.log_btn_toggle.isChecked(): # start checked, so when we actually press the button, it toggles it off and starts the log
+    def on_log_toggle(self):
+        if self.log_thread.logging_enabled == True:
             self.log_thread.logging_enabled = False
             self.log_btn_toggle.setText("Press to start logging.")
-        elif not self.log_btn_toggle.isChecked() and self.comms_thread.serial_enabled == True:
+        elif self.log_thread.logging_enabled == False and self.comms_thread.serial_enabled == True:
             self.log_thread.logging_enabled = True
             self.log_btn_toggle.setText("Press to stop logging.")
-        else:
-            self.log_btn_toggle.setText("Serial not connected, please try again.")
-            self.log_btn_toggle.setChecked(True)
+        else: # covers when logging_enabled == False and serial_enabled == False
+            self.log_btn_toggle.setText("Serial not connected. Please try again.")
+            self.log_btn_toggle.setChecked(not self.log_btn_toggle.isChecked()) # may get rid of checkable option and just manually change bkgrnd color if possible
 
     def on_serial_toggle(self):
-        if self.serial_btn_toggle.isChecked():
+        if self.comms_thread.serial_enabled == True:
             self.comms_thread.serial_enabled = False
             self.serial_btn_toggle.setText("Press to connect serial.")
+            if self.log_thread.logging_enabled == True: #auto shutoff logging if serial is disconnected
+                self.log_btn_toggle.click() 
+                self.log_btn_toggle.setText("Serial disconnected. Please try again.")
         else:
-            self.comms_thread.serial_enabled = True
+            self.comms_thread.serial_enabled = True # just need to switch this flag, the comms thread will automatically handle the connection function
             self.serial_btn_toggle.setText("Press to disconnect serial.")
     
     def closeEvent(self, event):

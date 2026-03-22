@@ -51,9 +51,9 @@ class CommThread(QThread):
                 time.sleep(0.001)  # Small sleep to yield to other threads, adjust as needed for 100Hz
                     
             except Exception as e:
-                self.disconnect_serial()
+                if self.serialTransfer is not None:
+                    self.disconnect_serial()
                 self.connection_error.emit(str(e))
-
 
 
     def stop(self):
@@ -69,7 +69,6 @@ class CommThread(QThread):
         print(f"Serial connection disconnected.")
         self.serialTransfer.close()
         self.serialTransfer = None
-        self.serial_enabled = False
         self.system_status.laptop_status.laptop_state = -2
 
     def current_ms(self):
@@ -82,7 +81,8 @@ class CommThread(QThread):
                 ctypes.memmove(ctypes.addressof(self.packed_data), raw_payload, ctypes.sizeof(ds.PackedDataStruct))
                 
                 data_copy = copy.copy(self.packed_data) #apparently possible that gui reads it while we write to it
-                self.logger.log(ds.PacketType.TelemetryPk, data_copy)
+                if self.logger.logging_enabled == True:
+                    self.logger.log(ds.PacketType.TelemetryPk, data_copy)
                 self.telemetry_received.emit(data_copy)
             
             elif self.serialTransfer.id_byte == ds.PacketType.StatusPk:
@@ -91,7 +91,8 @@ class CommThread(QThread):
                 self.last_espGCS_ms = self.current_ms()
                 
                 status_copy = copy.copy(self.system_status)
-                #self.logger.log(ds.PacketType.StatusPk, data_copy)
+                if self.logger.logging_enabled == True:
+                    self.logger.log(ds.PacketType.StatusPk, status_copy)
                 self.status_received.emit(status_copy)
 
         elif self.serialTransfer.status.value <= 0:
@@ -110,7 +111,8 @@ class CommThread(QThread):
             
             self.serialTransfer.tx_struct_obj(val_bytes=bytes(self.command))
             self.serialTransfer.send(ctypes.sizeof(self.command), packet_id=ds.PacketType.CommandPk)
-            #self.logger.log(ds.PacketType.CommandPk, self.command)
+            if self.logger.logging_enabled == True:
+                self.logger.log(ds.PacketType.CommandPk, self.command)
             
             self.last_cmd_ms = current_time if (current_time - self.last_cmd_ms > 5 * self.CMD_INTERVAL_MS) else self.last_cmd_ms + self.CMD_INTERVAL_MS
 
