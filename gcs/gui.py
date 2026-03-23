@@ -1,7 +1,8 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QTextEdit
 from PyQt6.QtCore import pyqtSlot
 from comms import CommThread
 from logger import LoggerThread
+import time
 
 class GCSWindow(QMainWindow):
     def __init__(self):
@@ -20,18 +21,24 @@ class GCSWindow(QMainWindow):
         
         self.serial_btn_toggle = QPushButton("Testing \n Press to connect serial.")
         self.serial_btn_toggle.setCheckable(True)
-        #self.serial_btn_toggle.setChecked(True)
         self.serial_btn_toggle.clicked.connect(self.on_serial_toggle)
         
         self.log_btn_toggle = QPushButton("Press to start logging.")
         self.log_btn_toggle.setCheckable(True)
-        #self.log_btn_toggle.setChecked(True)
         self.log_btn_toggle.clicked.connect(self.on_log_toggle)
+
+        self.lbl_commands_sent = QTextEdit()
+        #self.text_edit.setPlainText()
+
+        self.resend_cmd_btn = QPushButton("Resend most recent command.")
+        self.resend_cmd_btn.clicked.connect(self.on_resend_cmd)
         
         layout.addWidget(self.serial_btn_toggle)
         layout.addWidget(self.log_btn_toggle)
         layout.addWidget(self.lbl_status)
         layout.addWidget(self.lbl_telemetry)
+        layout.addWidget(self.lbl_commands_sent)
+        layout.addWidget(self.resend_cmd_btn)
 
         # Threads
         self.log_thread = LoggerThread()
@@ -58,6 +65,20 @@ class GCSWindow(QMainWindow):
         """Triggered automatically when the backend emits new status."""
         text = f"Teensy State: {status.teensy_status.ac_state} | ESP GCS Temp: {status.esp_gcs_status.temperature}"
         self.lbl_status.setText(text)
+        formated_cmds = ""
+
+        for row in self.comms_thread.previous_cmds:
+            cmd_obj = row[0]
+            if row[1] != -1:
+                time_diff = time.time() - row[1]
+            else:
+                time_diff = -1
+            # 1. Extract values from the struct fields
+            fields_str = ", ".join([f"{name}: {getattr(cmd_obj, name)}" for name, _ in cmd_obj._fields_])
+            # 2. Format the time and combine
+            formated_cmds += f"[{time_diff:.1f}s ago]      {fields_str}\n"
+
+        self.lbl_commands_sent.setText(formated_cmds)
 
     @pyqtSlot(str)
     def update_serial_conn(self, error): # the enable flags should only ever be changed here, any other setters in the threads themselvs should jsut be reconfirming
@@ -90,6 +111,13 @@ class GCSWindow(QMainWindow):
         else:
             self.comms_thread.serial_enabled = True # just need to switch this flag, the comms thread will automatically handle the connection function
             self.serial_btn_toggle.setText("Press to disconnect serial.")
+
+    def on_resend_cmd(self):
+        if self.comms_thread.serial_enabled == True:
+            self.comms_thread.resend_cmd(ind=self.comms_thread.command.cmd_ID)
+            self.resend_cmd_btn.setText("Resend most recent command.")
+        else:
+            self.resend_cmd_btn.setText("Bruh, connect serial first")
     
     def closeEvent(self, event):
         if self.comms_thread:

@@ -19,6 +19,7 @@ class CommThread(QThread):
         self.port = port
         self.logger = logger
         self.serialTransfer = serialTransfer
+        self.resending_cmd = None
         
         # Instantiate structures locally
         self.system_status = ds.StatusStruct()
@@ -29,6 +30,9 @@ class CommThread(QThread):
         self.system_status.esp_ac_status = ds.espACStatus()
         self.system_status.esp_gcs_status = ds.espGCSStatus()
         self.system_status.laptop_status = ds.laptopStatus()
+
+        # for record keeping / acknowledgements
+        self.previous_cmds = []
 
         # Timing constants
         self.CMD_INTERVAL_MS = 10
@@ -99,6 +103,7 @@ class CommThread(QThread):
                 if self.logger.logging_enabled == True:
                     self.logger.log(ds.PacketType.StatusPk, status_copy)
                 self.status_received.emit(status_copy)
+                self.ack_cmd_check()
 
         elif self.serialTransfer.status.value <= 0:
             print(f'SERIAL ERROR: {self.serialTransfer.status.name}')
@@ -109,23 +114,47 @@ class CommThread(QThread):
         if (((current_time - self.last_cmd_ms) >= self.CMD_INTERVAL_MS) and (self.system_status.esp_gcs_status.esp_gcs_state > -1)):
             self.command.overall_time = current_time
             # TODO: Pull these values from the GUI later instead of hardcoding
-            self.command.servo1, self.command.servo2 = 1500, 1600
-            self.command.servo3, self.command.servo4 = 1700, 1800
-            self.command.motor = 1000
-            self.command.cmd_ID = 0
-            
+            if self.resending_cmd is None:
+                self.command.servo1, self.command.servo2, self.command.servo3, self.command.servo4, self.command.motor = 1500, 1600, 1700, 1800, 1000
+            else:
+                ctypes.pointer(self.command)[0] = self.resending_cmd
             self.serialTransfer.tx_struct_obj(val_bytes=bytes(self.command))
             self.serialTransfer.send(ctypes.sizeof(self.command), packet_id=ds.PacketType.CommandPk)
             if self.logger.logging_enabled == True:
                 self.logger.log(ds.PacketType.CommandPk, self.command)
+            self.record_cmd() # could make another flag to indicate new cmd isntead of going through the list each time but eh
             
+            if self.resending_cmd is not None: # placeholder if we want to do more after resending it
+                self.resending_cmd = None
+
             self.last_cmd_ms = current_time if (current_time - self.last_cmd_ms > 5 * self.CMD_INTERVAL_MS) else self.last_cmd_ms + self.CMD_INTERVAL_MS
 
         if (current_time - self.last_status_ms >= self.STATUS_INTERVAL_MS):
             self.serialTransfer.tx_struct_obj(val_bytes=bytes(self.system_status.laptop_status))
             self.serialTransfer.send(ctypes.sizeof(self.system_status.laptop_status), packet_id=ds.PacketType.StatusPk)
-            
+
+            # jsut testing cmd iteration
+            if self.command.cmd_ID < 9:
+                self.command.cmd_ID += 1   
+
             self.last_status_ms = current_time if (current_time - self.last_status_ms > 5 * self.STATUS_INTERVAL_MS) else self.last_status_ms + self.STATUS_INTERVAL_MS
+
+    def record_cmd(self):
+        for i in range(len(self.previous_cmds)):
+            if self.command.cmd_ID == self.previous_cmds[i][0].cmd_ID:
+                return True
+        new_entry = [type(self.command).from_buffer_copy(self.command), time.time()]
+        self.previous_cmds.append(new_entry)
+        self.previous_cmds = self.previous_cmds[-25:] # limit history to just past 25 for now
+        return False
+        
+    def ack_cmd_check(self):
+        for i in range(len(self.previous_cmds)):
+            if self.system_status.teensy_status.cmd_ack_ID == self.previous_cmds[i][0].cmd_ID:
+                self.previous_cmds[i][1] = -1
+
+    def resend_cmd(self, ind):
+        self.resending_cmd = self.previous_cmds[ind][0]
 
     def heartbeat_check(self):
         if ((self.current_ms() - self.last_espGCS_ms) >= self.heartbeat_timeout):

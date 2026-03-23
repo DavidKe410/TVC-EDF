@@ -94,7 +94,11 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
 
     if (packed_data.overall_time - last_status_ms >= config::STATUS_INTERVAL_MS) {
         if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + config::AVAIL_WRITE_MARGIN)) {
-            system_status.teensy_status.overall_time = packed_data.overall_time; 
+            system_status.teensy_status.overall_time = packed_data.overall_time;
+
+            // for temp cmd ack
+            system_status.teensy_status.cmd_ack_ID = g_command.cmd_ID;
+
             serialTransfer.txObj(system_status.teensy_status);
             serialTransfer.sendData(sizeof(system_status.teensy_status), StatusPk); // status packet id = 2
         } else {
