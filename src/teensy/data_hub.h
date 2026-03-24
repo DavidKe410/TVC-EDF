@@ -4,9 +4,14 @@
 #include "common/data_structs.h"
 #include "SdFat.h"
 #include "RingBuf.h"
+#include <vector>
+#include <algorithm>
 
 // Struct to consolidate all data
 extern AllData g_all_data; 
+
+// For commands
+extern std::vector<uint16_t> g_command_ids;
 
 // SD Card Objects
 extern size_t maxUsed;
@@ -23,6 +28,6 @@ void setupSD(StatusStruct &system_status);
 void cleanupSD();
 void logData(PackedDataStruct &packed_data);
 void packData(AllData &all_data, PackedDataStruct &packed_data);
-void sendData(PackedDataStruct &packed_data, StatusStruct &system_status);
+void sendData(PackedDataStruct &packed_data, StatusStruct &system_status, std::vector<uint16_t> &command_ids);
 void receiveData(CommandStruct &rx_command, StatusStruct &system_status);
-void processCMD(CommandStruct &rx_command, StatusStruct &system_status);
+void processCMD(CommandStruct &rx_command, StatusStruct &system_status, std::vector<uint16_t> &command_ids);

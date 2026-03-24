@@ -38,8 +38,9 @@ void loop() {
         readISM330(g_all_data.imu); //ism after bno085 for more consistent sampling where both are valid in one cycle
         packData(g_all_data, g_packed_data);
         //logData(packed_data);
-        sendData(g_packed_data, g_system_status); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
+        sendData(g_packed_data, g_system_status, g_command_ids); // alr rate limited, based on all_data.overall_time - though may just want to just use millis()
         receiveData(g_command, g_system_status);
+        processCMD(g_command, g_system_status, g_command_ids);
         g_system_status.teensy_status.ac_state = 2;
         // while ((millis() - startMillis) < (loopCount * CYCLE_TIME_MS)) {
         //     // wait until next cycle

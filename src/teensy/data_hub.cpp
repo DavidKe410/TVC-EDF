@@ -8,6 +8,8 @@ uint32_t previous_time = millis();
 
 AllData g_all_data;
 
+std::vector<uint16_t> g_command_ids = {};
+
 size_t maxUsed = 0;
 SdFs sd;
 FsFile file;
@@ -17,9 +19,10 @@ uint32_t last_tele_ms = 0;
 uint8_t tx_buffer[config::TX_CAPACITY];
 uint8_t rx_buffer[config::RX_CAPACITY];
 
-void processCMD(CommandStruct &command, StatusStruct &system_status) { // have a list of processed commands so we don't process multiple times?
-    if (command.type_cmd == 1){ // all of this kinda like a placeholder, simple ack
-        system_status.teensy_status.cmd_ack_ID = command.cmd_ID;
+void processCMD(CommandStruct &command, StatusStruct &system_status, std::vector<uint16_t> &command_ids) { // have a list of processed commands so we don't process multiple times?
+    if (std::find(command_ids.begin(), command_ids.end(), command.cmd_ID) != command_ids.end()){ // all of this kinda like a placeholder, simple ack
+        command_ids.push_back(command.cmd_ID);
+        // more processing yay
     }
 }
 
@@ -28,7 +31,7 @@ void receiveData(CommandStruct &command, StatusStruct &system_status){ //This is
         switch (serialTransfer.currentPacketID()){
             case CommandPk:
                 serialTransfer.rxObj(command);
-                // If we have multiple packet types, we can use the packetID to determine how to parse the data
+                
                 count++;
                 if (count == 400) {
                     uint32_t current_time = millis();
@@ -40,6 +43,7 @@ void receiveData(CommandStruct &command, StatusStruct &system_status){ //This is
                     previous_time = current_time;
                     count = 0;
                 }
+
                 break;
             case StatusPk:
                 serialTransfer.rxObj(system_status.esp_ac_status);
@@ -74,7 +78,7 @@ void packData(AllData &data, PackedDataStruct &packed) {
     packed.orien_cali_status = data.imu.orien_cali_status;
 }
 
-void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
+void sendData(PackedDataStruct &packed_data, StatusStruct &system_status, std::vector<uint16_t> &command_ids) {
     // Rate limit telemetry to TELE_RATE
     if ((packed_data.overall_time - last_tele_ms >= config::TELE_INTERVAL_MS) && (system_status.esp_ac_status.esp_ac_state > -1)) { // Using packed_data.overall_time as millis()
         if ((size_t)Serial7.availableForWrite() >= (sizeof(packed_data) + config::AVAIL_WRITE_MARGIN)) {
@@ -95,10 +99,10 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status) {
     if (packed_data.overall_time - last_status_ms >= config::STATUS_INTERVAL_MS) {
         if ((size_t)Serial7.availableForWrite() >= (sizeof(system_status.teensy_status) + config::AVAIL_WRITE_MARGIN)) {
             system_status.teensy_status.overall_time = packed_data.overall_time;
-
-            // for temp cmd ack
-            system_status.teensy_status.cmd_ack_ID = g_command.cmd_ID;
-
+            if (size(command_ids) != 0){
+                system_status.teensy_status.cmd_ack_ID = command_ids[0];
+                command_ids.erase(command_ids.begin());
+            }
             serialTransfer.txObj(system_status.teensy_status);
             serialTransfer.sendData(sizeof(system_status.teensy_status), StatusPk); // status packet id = 2
         } else {
