@@ -32,6 +32,9 @@ class GCSWindow(QMainWindow):
 
         self.resend_cmd_btn = QPushButton("Resend most recent command.")
         self.resend_cmd_btn.clicked.connect(self.on_resend_cmd)
+
+        self.manual_ctrl_btn = QPushButton("Activate Manual Control.")
+        self.manual_ctrl_btn.clicked.connect(self.on_manual_ctrl)
         
         layout.addWidget(self.serial_btn_toggle)
         layout.addWidget(self.log_btn_toggle)
@@ -39,6 +42,7 @@ class GCSWindow(QMainWindow):
         layout.addWidget(self.lbl_telemetry)
         layout.addWidget(self.lbl_commands_sent)
         layout.addWidget(self.resend_cmd_btn)
+        layout.addWidget(self.manual_ctrl_btn)
 
         # Threads
         self.log_thread = LoggerThread()
@@ -118,6 +122,14 @@ class GCSWindow(QMainWindow):
             self.resend_cmd_btn.setText("Resend most recent command.")
         else:
             self.resend_cmd_btn.setText("Bruh, connect serial first")
+
+    def on_manual_ctrl(self):
+        if self.comms_thread.manual_ctrl:
+            self.comms_thread.manual_ctrl = False
+            self.manual_ctrl_btn.setText("Activate Manual Control.")
+        else:
+            self.comms_thread.manual_ctrl = True
+            self.manual_ctrl_btn.setText("Manual Control Enabled. Press to deactivate manual control.")
     
     def closeEvent(self, event):
         if self.comms_thread:
