@@ -118,18 +118,19 @@ class GCSWindow(QMainWindow):
 
     def on_resend_cmd(self):
         if self.comms_thread.serial_enabled == True:
-            self.comms_thread.resend_cmd(ind=self.comms_thread.command.cmd_ID)
-            self.resend_cmd_btn.setText("Resend most recent command.")
+            if self.comms_thread.resend_cmd(ind=(len(self.comms_thread.previous_cmds)-1)):
+                self.resend_cmd_btn.setText("Resend most recent command.")
+            else:
+                self.resend_cmd_btn.setText("Invalid index. Try sending another command")
         else:
             self.resend_cmd_btn.setText("Bruh, connect serial first")
 
     def on_manual_ctrl(self):
         if self.comms_thread.manual_ctrl:
-            self.comms_thread.manual_ctrl = False
             self.manual_ctrl_btn.setText("Activate Manual Control.")
         else:
-            self.comms_thread.manual_ctrl = True
             self.manual_ctrl_btn.setText("Manual Control Enabled. Press to deactivate manual control.")
+        self.comms_thread.switch_manual_ctrl()
     
     def closeEvent(self, event):
         if self.comms_thread:

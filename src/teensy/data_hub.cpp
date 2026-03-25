@@ -20,10 +20,18 @@ uint8_t tx_buffer[config::TX_CAPACITY];
 uint8_t rx_buffer[config::RX_CAPACITY];
 
 void processCMD(CommandStruct &command, StatusStruct &system_status, std::vector<uint16_t> &command_ids) { // have a list of processed commands so we don't process multiple times?
-    if (std::find(command_ids.begin(), command_ids.end(), command.cmd_ID) != command_ids.end()){ // all of this kinda like a placeholder, simple ack
-        command_ids.push_back(command.cmd_ID);
-        // more processing yay
+    switch (command.type_cmd){
+        case 1: // manual command value for now
+            //set servos to this etc.
+            break;
+        case 2: // random integer rn, will need to standardize and perhaps enum this
+            if (std::find(command_ids.begin(), command_ids.end(), command.cmd_ID) == command_ids.end()){ // all of this kinda like a placeholder, simple ack
+                command_ids.push_back(command.cmd_ID);
+                // more processing yay
+            }
+            break;
     }
+    command.type_cmd = 0; //idk after we process it, revert it to 0 so we don't keep processing it when new commands aren't coming in which means command is stuck in the last one
 }
 
 void receiveData(CommandStruct &command, StatusStruct &system_status){ //This is for the onboard teensy
@@ -102,6 +110,8 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status, std::v
             if (size(command_ids) != 0){
                 system_status.teensy_status.cmd_ack_ID = command_ids[0];
                 command_ids.erase(command_ids.begin());
+            }else{
+                system_status.teensy_status.cmd_ack_ID = 0; //so we don't keep acknowledging the last received message if we disconnect and the GCS tries to resend it
             }
             serialTransfer.txObj(system_status.teensy_status);
             serialTransfer.sendData(sizeof(system_status.teensy_status), StatusPk); // status packet id = 2
@@ -123,6 +133,7 @@ void sendData(PackedDataStruct &packed_data, StatusStruct &system_status, std::v
         Serial.print(F("ESP AC State:  ")); Serial.println(system_status.esp_ac_status.esp_ac_state);
         Serial.print(F("ESP GCS State: ")); Serial.println(system_status.esp_gcs_status.esp_gcs_state);
         Serial.print(F("Laptop State: ")); Serial.println(system_status.laptop_status.laptop_state);
+        Serial.print(F("Cmd ID:     ")); Serial.println(system_status.teensy_status.cmd_ack_ID);
         Serial.print(F("Werid cmd rate:  ")); Serial.println(countweirdrate);
         Serial.println(F("---------------------"));
     }

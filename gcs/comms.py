@@ -36,6 +36,9 @@ class CommThread(QThread):
         self.previous_cmds = []
         self.num_cmds_saved = 25
 
+        #agagaga, think a queue for sending commands could save us from soemthing i nthe future :/
+        self.cmd_queue = []
+
         # Timing constants
         self.CMD_INTERVAL_MS = 10
         self.STATUS_INTERVAL_MS = 500
@@ -121,8 +124,11 @@ class CommThread(QThread):
                     self.command.type_cmd, self.command.servo1, self.command.servo2, self.command.servo3, self.command.servo4, self.command.motor = 1, 1500, 1600, 1700, 1800, 1000
                 else: # self.major_cmd=True, doesn't matter if self.manual_ctrl true or false. don't need anything here for now though
                 # once the function to resend command is run, it won't be overwritten with the manual controls sice major cmd = true
-                    self.record_major_cmd() # could make another flag to indicate new cmd isntead of going through the list each time but eh
-                    self.major_cmd = False
+                    if len(self.cmd_queue) > 0:
+                        self.command = self.cmd_queue.pop(0) # can prob make some kind of optimization of making a copy of this for self.command, but moving it directly to previous_cmds without copying it again
+                        self.record_major_cmd() # may be moved to directly where major commands are made, if it reaches this point, assume itll be sent, so the timing is also updated
+                    if len(self.cmd_queue) == 0:
+                        self.major_cmd = False
                 self.serialTransfer.tx_struct_obj(val_bytes=bytes(self.command))
                 self.serialTransfer.send(ctypes.sizeof(self.command), packet_id=ds.PacketType.CommandPk)
                 if self.logger.logging_enabled == True:
@@ -135,16 +141,12 @@ class CommThread(QThread):
             self.serialTransfer.tx_struct_obj(val_bytes=bytes(self.system_status.laptop_status))
             self.serialTransfer.send(ctypes.sizeof(self.system_status.laptop_status), packet_id=ds.PacketType.StatusPk)
 
-            # jsut testing cmd iteration
-            if self.command.cmd_ID < 9:
-                self.comamnd.type_cmd = 2
-                self.command.cmd_ID += 1   
-
             self.last_status_ms = current_time if (current_time - self.last_status_ms > 5 * self.STATUS_INTERVAL_MS) else self.last_status_ms + self.STATUS_INTERVAL_MS
 
     def record_major_cmd(self):
         for i in range(len(self.previous_cmds)):
             if self.command.cmd_ID == self.previous_cmds[i][0].cmd_ID:
+                self.previous_cmds[i][1] = time.time() # update last sent time as we are sending this again
                 return True
         new_entry = [ds.CommandStruct.from_buffer_copy(self.command), time.time()]
         self.previous_cmds.append(new_entry)
@@ -156,9 +158,25 @@ class CommThread(QThread):
             if self.system_status.teensy_status.cmd_ack_ID == self.previous_cmds[i][0].cmd_ID:
                 self.previous_cmds[i][1] = -1
 
-    def resend_cmd(self, ind):
+    def resend_cmd(self, ind): # called in gui through button
+        if ind >= 0 and ind < len(self.previous_cmds):
+            self.major_cmd = True # make a queue for commadns to be sent :/ bruh we are making this so much
+            new_entry = ds.CommandStruct.from_buffer_copy(self.previous_cmds[ind][0])
+            self.cmd_queue.append(new_entry)
+            return True
+        else:
+            return False
+
+    def switch_manual_ctrl(self):
         self.major_cmd = True
-        ctypes.memmove(ctypes.addressof(self.command), self.previous_cmds[ind][0], ctypes.sizeof(ds.CommandStruct))
+        if self.manual_ctrl:
+            self.manual_ctrl = False
+        else:
+            self.manual_ctrl = True
+        self.command.type_cmd = 2 # just example for sending a major command that tells teensy we are switching control method
+        self.command.cmd_ID += 1 # jsut testing cmd iteration
+        new_entry = ds.CommandStruct.from_buffer_copy(self.command) # copying from here since we just have to add soemthing there for now
+        self.cmd_queue.append(new_entry)
 
     def heartbeat_check(self):
         if ((self.current_ms() - self.last_espGCS_ms) >= self.heartbeat_timeout):
