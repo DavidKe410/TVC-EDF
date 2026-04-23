@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1496, 914)
+        MainWindow.resize(1491, 892)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.time_update = QtWidgets.QTextBrowser(parent=self.centralwidget)
@@ -72,7 +72,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setStretch(0, 1)
         self.horizontalLayout.setStretch(1, 3)
         self.verticalLayoutWidget = QtWidgets.QWidget(parent=self.centralwidget)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(1330, 30, 160, 841))
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(1325, 30, 160, 841))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -99,62 +99,85 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.setSpacing(0)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.state_name_list = QtWidgets.QTextBrowser(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.state_name_list.sizePolicy().hasHeightForWidth())
         self.state_name_list.setSizePolicy(sizePolicy)
-        self.state_name_list.setMaximumSize(QtCore.QSize(16777215, 140))
+        self.state_name_list.setMaximumSize(QtCore.QSize(16777215, 125))
         self.state_name_list.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.state_name_list.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.state_name_list.setObjectName("state_name_list")
-        self.horizontalLayout_3.addWidget(self.state_name_list)
+        self.horizontalLayout_3.addWidget(self.state_name_list, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.states_update = QtWidgets.QTextBrowser(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.states_update.sizePolicy().hasHeightForWidth())
         self.states_update.setSizePolicy(sizePolicy)
-        self.states_update.setMaximumSize(QtCore.QSize(16777215, 140))
+        self.states_update.setMaximumSize(QtCore.QSize(16777215, 125))
         self.states_update.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.states_update.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.states_update.setObjectName("states_update")
-        self.horizontalLayout_3.addWidget(self.states_update)
+        self.horizontalLayout_3.addWidget(self.states_update, 0, QtCore.Qt.AlignmentFlag.AlignHCenter|QtCore.Qt.AlignmentFlag.AlignTop)
         self.StatesVertLayout.addLayout(self.horizontalLayout_3)
         self.verticalLayout.addLayout(self.StatesVertLayout)
         self.CmdAcksVertLayout = QtWidgets.QVBoxLayout()
         self.CmdAcksVertLayout.setSpacing(2)
         self.CmdAcksVertLayout.setObjectName("CmdAcksVertLayout")
         self.cmd_ack_header = QtWidgets.QTextBrowser(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Ignored)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.cmd_ack_header.sizePolicy().hasHeightForWidth())
         self.cmd_ack_header.setSizePolicy(sizePolicy)
         self.cmd_ack_header.setMinimumSize(QtCore.QSize(0, 28))
+        self.cmd_ack_header.setMaximumSize(QtCore.QSize(16777215, 25))
         self.cmd_ack_header.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.cmd_ack_header.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.cmd_ack_header.setObjectName("cmd_ack_header")
         self.CmdAcksVertLayout.addWidget(self.cmd_ack_header)
+        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_6.setSpacing(0)
+        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
+        self.cmd_times = QtWidgets.QTextBrowser(parent=self.verticalLayoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.cmd_times.sizePolicy().hasHeightForWidth())
+        self.cmd_times.setSizePolicy(sizePolicy)
+        self.cmd_times.setMaximumSize(QtCore.QSize(56, 150))
+        self.cmd_times.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        self.cmd_times.setObjectName("cmd_times")
+        self.horizontalLayout_6.addWidget(self.cmd_times)
         self.cmds_list = QtWidgets.QTextBrowser(parent=self.verticalLayoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.cmds_list.sizePolicy().hasHeightForWidth())
+        self.cmds_list.setSizePolicy(sizePolicy)
+        self.cmds_list.setMaximumSize(QtCore.QSize(16777215, 150))
+        self.cmds_list.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
         self.cmds_list.setObjectName("cmds_list")
-        self.CmdAcksVertLayout.addWidget(self.cmds_list)
+        self.horizontalLayout_6.addWidget(self.cmds_list)
+        self.CmdAcksVertLayout.addLayout(self.horizontalLayout_6)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setSpacing(0)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.resend_cmd_input = QtWidgets.QTextEdit(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Ignored)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.resend_cmd_input.sizePolicy().hasHeightForWidth())
         self.resend_cmd_input.setSizePolicy(sizePolicy)
         self.resend_cmd_input.setMinimumSize(QtCore.QSize(0, 0))
+        self.resend_cmd_input.setMaximumSize(QtCore.QSize(16777215, 25))
         self.resend_cmd_input.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.resend_cmd_input.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.resend_cmd_input.setObjectName("resend_cmd_input")
         self.horizontalLayout_5.addWidget(self.resend_cmd_input)
         self.resend_cmd_btn = QtWidgets.QPushButton(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Ignored)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.resend_cmd_btn.sizePolicy().hasHeightForWidth())
@@ -164,9 +187,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.setStretch(0, 3)
         self.horizontalLayout_5.setStretch(1, 1)
         self.CmdAcksVertLayout.addLayout(self.horizontalLayout_5)
-        self.CmdAcksVertLayout.setStretch(0, 10)
-        self.CmdAcksVertLayout.setStretch(1, 50)
-        self.CmdAcksVertLayout.setStretch(2, 10)
         self.verticalLayout.addLayout(self.CmdAcksVertLayout)
         self.CommandsVertLayout = QtWidgets.QVBoxLayout()
         self.CommandsVertLayout.setSpacing(0)
@@ -229,17 +249,45 @@ class Ui_MainWindow(object):
         self.arm_state_btn.setMinimumSize(QtCore.QSize(0, 35))
         self.arm_state_btn.setObjectName("arm_state_btn")
         self.CommandsVertLayout.addWidget(self.arm_state_btn)
+        self.arm_state_btn_3 = QtWidgets.QPushButton(parent=self.verticalLayoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.arm_state_btn_3.sizePolicy().hasHeightForWidth())
+        self.arm_state_btn_3.setSizePolicy(sizePolicy)
+        self.arm_state_btn_3.setMinimumSize(QtCore.QSize(0, 35))
+        self.arm_state_btn_3.setObjectName("arm_state_btn_3")
+        self.CommandsVertLayout.addWidget(self.arm_state_btn_3)
+        self.rndm_btn_2 = QtWidgets.QPushButton(parent=self.verticalLayoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.rndm_btn_2.sizePolicy().hasHeightForWidth())
+        self.rndm_btn_2.setSizePolicy(sizePolicy)
+        self.rndm_btn_2.setMinimumSize(QtCore.QSize(0, 35))
+        self.rndm_btn_2.setObjectName("rndm_btn_2")
+        self.CommandsVertLayout.addWidget(self.rndm_btn_2)
+        self.rndm_btn_3 = QtWidgets.QPushButton(parent=self.verticalLayoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.rndm_btn_3.sizePolicy().hasHeightForWidth())
+        self.rndm_btn_3.setSizePolicy(sizePolicy)
+        self.rndm_btn_3.setMinimumSize(QtCore.QSize(0, 35))
+        self.rndm_btn_3.setObjectName("rndm_btn_3")
+        self.CommandsVertLayout.addWidget(self.rndm_btn_3)
         self.verticalLayout.addLayout(self.CommandsVertLayout)
         self.ManControlVertLayout = QtWidgets.QVBoxLayout()
+        self.ManControlVertLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetMinimumSize)
         self.ManControlVertLayout.setSpacing(2)
         self.ManControlVertLayout.setObjectName("ManControlVertLayout")
         self.manual_ctrl_btn = QtWidgets.QPushButton(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.manual_ctrl_btn.sizePolicy().hasHeightForWidth())
         self.manual_ctrl_btn.setSizePolicy(sizePolicy)
-        self.manual_ctrl_btn.setMinimumSize(QtCore.QSize(0, 25))
+        self.manual_ctrl_btn.setMinimumSize(QtCore.QSize(0, 35))
         self.manual_ctrl_btn.setMaximumSize(QtCore.QSize(16777215, 37))
         font = QtGui.QFont()
         font.setBold(True)
@@ -260,53 +308,59 @@ class Ui_MainWindow(object):
         self.manual_act_input_header.setObjectName("manual_act_input_header")
         self.ManControlVertLayout.addWidget(self.manual_act_input_header, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_4.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
         self.horizontalLayout_4.setSpacing(0)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.S1_slider = QtWidgets.QSlider(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.S1_slider.sizePolicy().hasHeightForWidth())
         self.S1_slider.setSizePolicy(sizePolicy)
+        self.S1_slider.setMaximumSize(QtCore.QSize(16777215, 50))
         self.S1_slider.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.S1_slider.setObjectName("S1_slider")
-        self.horizontalLayout_4.addWidget(self.S1_slider)
+        self.horizontalLayout_4.addWidget(self.S1_slider, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.S2_slider = QtWidgets.QSlider(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.S2_slider.sizePolicy().hasHeightForWidth())
         self.S2_slider.setSizePolicy(sizePolicy)
+        self.S2_slider.setMaximumSize(QtCore.QSize(16777215, 50))
         self.S2_slider.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.S2_slider.setObjectName("S2_slider")
-        self.horizontalLayout_4.addWidget(self.S2_slider)
+        self.horizontalLayout_4.addWidget(self.S2_slider, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.S3_slider = QtWidgets.QSlider(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.S3_slider.sizePolicy().hasHeightForWidth())
         self.S3_slider.setSizePolicy(sizePolicy)
+        self.S3_slider.setMaximumSize(QtCore.QSize(16777215, 50))
         self.S3_slider.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.S3_slider.setObjectName("S3_slider")
-        self.horizontalLayout_4.addWidget(self.S3_slider)
+        self.horizontalLayout_4.addWidget(self.S3_slider, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.S4_slider = QtWidgets.QSlider(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.S4_slider.sizePolicy().hasHeightForWidth())
         self.S4_slider.setSizePolicy(sizePolicy)
+        self.S4_slider.setMaximumSize(QtCore.QSize(16777215, 50))
         self.S4_slider.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.S4_slider.setObjectName("S4_slider")
-        self.horizontalLayout_4.addWidget(self.S4_slider)
+        self.horizontalLayout_4.addWidget(self.S4_slider, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.esc_slider = QtWidgets.QSlider(parent=self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.esc_slider.sizePolicy().hasHeightForWidth())
         self.esc_slider.setSizePolicy(sizePolicy)
+        self.esc_slider.setMaximumSize(QtCore.QSize(16777215, 50))
         self.esc_slider.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.esc_slider.setObjectName("esc_slider")
-        self.horizontalLayout_4.addWidget(self.esc_slider)
+        self.horizontalLayout_4.addWidget(self.esc_slider, 0, QtCore.Qt.AlignmentFlag.AlignTop)
         self.ManControlVertLayout.addLayout(self.horizontalLayout_4)
         self.manual_act_PWM_values = QtWidgets.QTextBrowser(parent=self.verticalLayoutWidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -319,18 +373,22 @@ class Ui_MainWindow(object):
         self.manual_act_PWM_values.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.manual_act_PWM_values.setObjectName("manual_act_PWM_values")
         self.ManControlVertLayout.addWidget(self.manual_act_PWM_values)
-        self.ManControlVertLayout.setStretch(0, 10)
-        self.ManControlVertLayout.setStretch(1, 5)
-        self.ManControlVertLayout.setStretch(2, 25)
-        self.ManControlVertLayout.setStretch(3, 5)
+        self.ManControlVertLayout.setStretch(0, 1)
+        self.ManControlVertLayout.setStretch(1, 1)
+        self.ManControlVertLayout.setStretch(2, 2)
+        self.ManControlVertLayout.setStretch(3, 1)
         self.verticalLayout.addLayout(self.ManControlVertLayout)
+        self.verticalLayout.setStretch(0, 4)
+        self.verticalLayout.setStretch(1, 6)
+        self.verticalLayout.setStretch(2, 7)
+        self.verticalLayout.setStretch(3, 10)
         self.raw_tele_line = QtWidgets.QLabel(parent=self.centralwidget)
         self.raw_tele_line.setGeometry(QtCore.QRect(565, 5, 921, 21))
         self.raw_tele_line.setAutoFillBackground(True)
         self.raw_tele_line.setObjectName("raw_tele_line")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1496, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1491, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
@@ -346,71 +404,79 @@ class Ui_MainWindow(object):
         self.time_update.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:10pt;\">Date/Time:            Teensy Up-time:           Laptop Up-Time:</span></p></body></html>"))
         self.states_header.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt; font-weight:600;\">STATES</span></p></body></html>"))
         self.state_name_list.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">Teensy:</span></p>\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">AC-ESP:</span></p>\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">BNO:</span></p>\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">ISM:</span></p>\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">SD Card:</span></p>\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">GCS:</span></p>\n"
-"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">GCS-ESP:</span></p></body></html>"))
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Teensy:</p>\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">AC-ESP:</p>\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">BNO:</p>\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">ISM:</p>\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">SD Card:</p>\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">GCS:</p>\n"
+"<p align=\"right\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">GCS-ESP:</p></body></html>"))
         self.states_update.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">Teensy</span></p>\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">AC-ESP</span></p>\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">BNO</span></p>\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">ISM</span></p>\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">SD Card</span></p>\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">GCS</span></p>\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">GCS-ESP</span></p></body></html>"))
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Teensy</p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">AC-ESP</p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">BNO</p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">ISM</p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">SD Card</p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">GCS</p>\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">GCS-ESP</p></body></html>"))
         self.cmd_ack_header.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt; font-weight:600;\">Command ACKs</span></p></body></html>"))
+        self.cmd_times.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:7pt; font-weight:600;\">COMMANDS</span></p></body></html>"))
         self.cmds_list.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:7pt; font-weight:600;\">COMMANDS</span></p></body></html>"))
         self.resend_cmd_input.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
-"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\">Resend CMD ID</span></p></body></html>"))
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
+"<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Resend CMD ID</p></body></html>"))
         self.resend_cmd_btn.setText(_translate("MainWindow", "Send"))
         self.gcs_cmd_header.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt; font-weight:600;\">COMMANDs</span></p></body></html>"))
-        self.serial_conn_btn.setText(_translate("MainWindow", "Serial Connection"))
-        self.logger_btn.setText(_translate("MainWindow", "Logger Toggle"))
+        self.serial_conn_btn.setText(_translate("MainWindow", "Connect Serial"))
+        self.logger_btn.setText(_translate("MainWindow", "Start Log"))
         self.act_test_btn.setText(_translate("MainWindow", "Actuator Test"))
         self.idle_state_btn.setText(_translate("MainWindow", "IDLE State"))
         self.arm_state_btn.setText(_translate("MainWindow", "ARM State"))
+        self.arm_state_btn_3.setText(_translate("MainWindow", "Random btn 1"))
+        self.rndm_btn_2.setText(_translate("MainWindow", "Random btn 2"))
+        self.rndm_btn_3.setText(_translate("MainWindow", "Random btn 3"))
         self.manual_ctrl_btn.setText(_translate("MainWindow", "MANUAL Control"))
         self.manual_act_input_header.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
-"<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:9.75pt;\"> S1    S2    S3   S4    M</span></p></body></html>"))
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
+"<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> S1    S2    S3   S4    M</p></body></html>"))
         self.manual_act_PWM_values.setHtml(_translate("MainWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9.75pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"justify\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:7pt;\"> 0000   0000   0000   0000   0000</span></p></body></html>"))
         self.raw_tele_line.setText(_translate("MainWindow", "Raw Telemetry: "))
 

@@ -15,7 +15,7 @@ class LoggerThread(QThread):
         self.file = None
 
     def _generate_name(self, base):
-        file_location = "gcs/datalogs/GCS/"
+        file_location = "datalogs/GCS/"
         increment = 0
         while Path(f"{file_location}{base}_{increment}.bin").is_file():
             increment += 1
